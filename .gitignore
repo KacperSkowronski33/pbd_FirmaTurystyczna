@@ -52,3 +52,17 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+.idea/
+*.sln.iml
+
+.DS_Store
+.AppleDouble
+.LSOverride

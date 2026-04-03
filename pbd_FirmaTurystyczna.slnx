@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="BookingApp.Api/BookingApp.Api.csproj" />
+  <Project Path="BookingApp.Client/BookingApp.Client.csproj" />
+  <Project Path="BookingApp.Shared/BookingApp.Shared.csproj" />
+</Solution>
