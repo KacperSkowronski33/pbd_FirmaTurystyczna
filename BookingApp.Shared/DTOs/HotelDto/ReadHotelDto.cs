@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BookingApp.Shared.Models;
 
-namespace BookingApp.Shared.DTOs
+namespace BookingApp.Shared.DTOs.HotelDto
 {
     public class ReadHotelDto
     {
