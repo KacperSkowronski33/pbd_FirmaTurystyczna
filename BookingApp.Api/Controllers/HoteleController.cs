@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using BookingApp.Shared.Models;
 using Microsoft.EntityFrameworkCore;
-using BookingApp.Shared.DTOs;
+using BookingApp.Shared.DTOs.HotelDto;
 
 namespace BookingApp.Api.Controllers
 {
