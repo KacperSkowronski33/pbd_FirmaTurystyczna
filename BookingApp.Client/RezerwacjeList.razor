@@ -1,0 +1,48 @@
+﻿@page "/rezerwacje"
+@using BookingApp.Shared.Models
+@using BookingApp.Shared.DTOs.RezerwacjaDto
+@inject HttpClient Http
+
+<h3>Lista Rezerwacji</h3>
+
+@if (rezerwacje == null)
+{
+    <p><em>Ładowanie danych z serwera...</em></p>
+}
+else if (!rezerwacje.Any())
+{
+    <p>Brak rezerwacji w bazie.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Data Utworzenia</th>
+                <th>Liczba Osób</th>
+                <th>Kwota</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rez in rezerwacje)
+            {
+                <tr>
+                    <td>@rez.Id</td>
+                    <td>@rez.DataUtworzenia.ToString("dd.MM.yyyy")</td>
+                    <td>@rez.LiczbaOsob</td>
+                    <td>@rez.KwotaCalkowita PLN</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ReadRezerwacjaDto>? rezerwacje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        rezerwacje = await Http.GetFromJsonAsync<List<ReadRezerwacjaDto>>("api/Rezerwacje");
+    }
+}
