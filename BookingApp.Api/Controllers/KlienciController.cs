@@ -31,7 +31,6 @@ namespace BookingApp.Api.Controllers
                     Imie = k.Imie,
                     Nazwisko = k.Nazwisko,
                     Email = k.Email,
-                    Haslo = k.Haslo,
                     AdresKlienta = k.AdresKlienta,
                 }).ToListAsync();
             return Ok(klienci);
