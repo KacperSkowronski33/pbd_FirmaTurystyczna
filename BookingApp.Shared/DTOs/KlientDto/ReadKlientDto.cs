@@ -13,7 +13,6 @@ namespace BookingApp.Shared.DTOs.KlientDto
         public string Imie { get; set; } = string.Empty;
         public string Nazwisko { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string Haslo { get; set; } = string.Empty;
         public string? AdresKlienta { get; set; }
 
         public ICollection<Rezerwacja> Rezerwacje = new List<Rezerwacja>();
