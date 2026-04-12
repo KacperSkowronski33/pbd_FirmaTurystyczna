@@ -52,7 +52,7 @@ namespace BookingApp.Api.Controllers
             return CreatedAtAction(nameof(GetKlient), new { id = nowy.Id }, nowy);
         }
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutRezerwacja(int id, UpdateKlientDto k)
+        public async Task<IActionResult> PutKlient(int id, UpdateKlientDto k)
         {
             var klienciBaza = await _context.Klienci.FindAsync(id);
             if (klienciBaza == null)
@@ -70,7 +70,7 @@ namespace BookingApp.Api.Controllers
 
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteHotel(int id)
+        public async Task<IActionResult> DeleteKlient(int id)
         {
             var klient = await _context.Klienci.FindAsync(id);
             if (klient == null)
