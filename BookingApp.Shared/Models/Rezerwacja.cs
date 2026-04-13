@@ -16,9 +16,9 @@ namespace BookingApp.Shared.Models
         public decimal KwotaCalkowita { get; set; }
         public DateTime DataUtworzenia {  get; set; }
 
-        public Klient Klient { get; set; }
-        public TerminCena TerminCena { get; set; }
-        public Pracownik Pracownik { get; set; }
+        public Klient Klient { get; set; } = new Klient();
+        public TerminCena TerminCena { get; set; } = new TerminCena();
+        public Pracownik Pracownik { get; set; } = new Pracownik();
 
         public ICollection<StatusRezerwacji> Statusy { get; set; } = new List<StatusRezerwacji>();
         public ICollection<Doplata> Doplaty { get; set; } = new List<Doplata>();
