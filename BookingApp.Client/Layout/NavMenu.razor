@@ -1,34 +1,33 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">BookingApp.Client</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+﻿<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="">
+            <span class="logo-main">BOOKING<span class="logo-accent">APP</span></span>
+        </a>
+
+            <ul class="navbar-nav ms-auto align-items-center gap-2">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="favorites">
+                        <i class="bi bi-heart"></i>
+                        <span>Ulubione</span>
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="my-bookings">
+                        <i class="bi bi-briefcase"></i>
+                        <span>Moje rezerwacje</span>
+                    </NavLink>
+                </li>
+                <li class="nav-item ms-lg-2">
+                    <NavLink class="btn btn-outline-primary rounded-pill btn-sm px-3" href="login">
+                        Zaloguj się
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="btn btn-primary rounded-pill btn-sm px-3" href="register">
+                        Zarejestruj się
+                    </NavLink>
+                </li>
+            </ul>
+        
     </div>
-</div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="rezerwacje">
-                <span class="bi bi-list-task-nav-menu" aria-hidden="true"></span> Rezerwacje
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
-@code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
-}
+</nav>
