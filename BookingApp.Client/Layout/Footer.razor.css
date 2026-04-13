@@ -1,0 +1,22 @@
+﻿.footer {
+    background-color: #ffffff;
+}
+
+.footer-link {
+    text-decoration: none;
+    color: #6c757d;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+    .footer-link:hover {
+        color: #003580;
+    }
+
+.text-primary {
+    color: #003580 !important;
+}
+
+.text-warning {
+    color: #ff6600 !important;
+}
