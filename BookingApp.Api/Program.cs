@@ -1,5 +1,6 @@
 using BookingApp.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddDbContext<BookingDbContext>(options => options.UseNpgsql(bui
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddValidatorsFromAssemblyContaining<BookingApp.Api.Validators.CreateRezerwacjaValidator>();
 
 builder.Services.AddCors(options =>
 {
