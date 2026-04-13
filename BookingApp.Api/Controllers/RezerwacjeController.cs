@@ -1,9 +1,10 @@
-﻿using BookingApp.Api.Data;
-using BookingApp.Shared.DTOs.HotelDto;
-using BookingApp.Shared.DTOs.RezerwacjaDto;
-using BookingApp.Shared.Models;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using FluentValidation;
+using BookingApp.Api.Data;
+using BookingApp.Shared.DTOs.RezerwacjaDto;
 using Microsoft.EntityFrameworkCore;
+using BookingApp.Shared.Models;
 
 namespace BookingApp.Api.Controllers
 {
@@ -12,76 +13,44 @@ namespace BookingApp.Api.Controllers
     public class RezerwacjeController : ControllerBase
     {
         private readonly BookingDbContext _context;
-
-        public RezerwacjeController(BookingDbContext context)
+        private readonly IValidator<CreateRezerwacjaDto> _validator;
+        public RezerwacjeController(BookingDbContext context, IValidator<CreateRezerwacjaDto> validator)
         {
             _context = context;
-        }
-
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadRezerwacjaDto>>> GetRezerwacje()
-        {
-            var rezerwacje = await _context.Rezerwacje
-                .AsNoTracking()
-                .Select(r => new ReadRezerwacjaDto
-                {
-                    Id = r.Id,
-                    KlientId = r.KlientId,
-                    TerminCenaId = r.TerminCenaId,
-                    PracownikId = r.PracownikId,
-                    LiczbaOsob = r.LiczbaOsob,
-                    KwotaCalkowita = r.KwotaCalkowita,
-                    DataUtworzenia = r.DataUtworzenia,
-                }).ToListAsync();
-            return Ok(rezerwacje);
+            _validator = validator;
         }
 
         [HttpPost]
-        public async Task<ActionResult<Rezerwacja>> PostRezerwacja(CreateRezerwacjaDto r)
+        public async Task<ActionResult> PostRezerwacja(CreateRezerwacjaDto dto)
         {
-            var nowy = new Rezerwacja
+            var wynikWalidacja = await _validator.ValidateAsync(dto);
+            if (!wynikWalidacja.IsValid)
             {
-                KlientId = r.KlientId,
-                TerminCenaId = r.TerminCenaId,
-                PracownikId = r.PracownikId,
-                LiczbaOsob = r.LiczbaOsob,
-                KwotaCalkowita = r.KwotaCalkowita,
-                DataUtworzenia = r.DataUtworzenia,
+                return BadRequest(wynikWalidacja.Errors.Select(e => e.ErrorMessage));
+            }
+            var termin = await _context.TerminyCeny.FindAsync(dto.TerminCenaId);
+            if (termin == null)
+            {
+                return BadRequest("Wybrany termin nie istnieje.");
+            }
+            var nowaRezerwacja = new Rezerwacja
+            {
+                KlientId = dto.KlientId,
+                TerminCenaId = dto.TerminCenaId,
+                PracownikId = dto.PracownikId,
+                LiczbaOsob = dto.LiczbaOsob,
+                KwotaCalkowita = termin.CenaPodstawowa * dto.LiczbaOsob,
+                DataUtworzenia = DateTime.Now
+
             };
-            _context.Rezerwacje.Add(nowy);
+            _context.Rezerwacje.Add(nowaRezerwacja);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetRezerwacje), new { id = nowy.Id }, nowy);
-        }
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutRezerwacja(int id, UpdateRezerwacjaDto r)
-        {
-            var rezerwacjeBaza = await _context.Rezerwacje.FindAsync(id);
-            if (rezerwacjeBaza == null)
+            return Ok(new
             {
-                return NotFound($"Rezerwacja o id {id} nie istnieje w bazie");
-            }
-            rezerwacjeBaza.KlientId = r.KlientId;
-            rezerwacjeBaza.TerminCenaId = r.TerminCenaId;
-            rezerwacjeBaza.PracownikId = r.PracownikId;
-            rezerwacjeBaza.LiczbaOsob = r.LiczbaOsob;
-            rezerwacjeBaza.KwotaCalkowita = r.KwotaCalkowita;
-            rezerwacjeBaza.DataUtworzenia = r.DataUtworzenia;
-            await _context.SaveChangesAsync();
-            return NoContent();
-        }
-
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteHotel(int id)
-        {
-            var rezerwacja = await _context.Rezerwacje.FindAsync(id);
-            if (rezerwacja == null)
-            {
-                return NotFound($"Rezerwacja o id = {id} nie istnieje w bazie");
-            }
-            _context.Rezerwacje.Remove(rezerwacja);
-            await _context.SaveChangesAsync();
-            return NoContent();
+                wiadomosc = "Rezerwacja utworzona pomyślnie!",
+                id = nowaRezerwacja.Id,
+                kwotaDoZaplaty = nowaRezerwacja.KwotaCalkowita
+            });
         }
     }
 }
