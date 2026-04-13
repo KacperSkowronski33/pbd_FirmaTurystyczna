@@ -1,11 +1,30 @@
 ﻿@inherits LayoutComponentBase
 
+@{
+    // Zmień na false, aby zobaczyć widok zwykłego użytkownika
+    bool pokazujJakoAdmin = true;
+}
+
 <div class="page">
-    <NavMenu />
-
-    <main>
-        @Body
-    </main>
-
-    <Footer />
+    @if (pokazujJakoAdmin)
+    {
+        <div class="admin-layout">
+            <AdminSidebar />
+            <div class="content-wrapper">
+                <NavMenu />
+                <main class="p-4">
+                    @Body
+                </main>
+                <Footer />
+            </div>
+        </div>
+    }
+    else
+    {
+        <NavMenu />
+        <main>
+            @Body
+        </main>
+        <Footer />
+    }
 </div>
