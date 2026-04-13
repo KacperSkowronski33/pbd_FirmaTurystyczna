@@ -1,10 +1,11 @@
 ﻿@page "/"
+@inject NavigationManager NavManager
 
 @* Sekcja Header (Niebieskie tło pod wyszukiwarką) *@
 <div class="hero-section">
     <div class="container text-start">
-        <h1>Znajdź swój następny pobyt</h1>
-        <p>Szukaj ofert hoteli, domów i innych obiektów...</p>
+        <h1>Zaplanuj swoje wymarzone wakacje</h1>
+        <p>Odkryj najlepsze oferty i rezerwuj w kilka minut...</p>
     </div>
 </div>
 
@@ -28,7 +29,7 @@
         <span class="me-2">👤</span>
         <input type="text" id="osoby" placeholder="2 dorosłych · 1 pokój" />
     </div>
-    <button class="search-btn">Szukaj</button>
+    <button class="search-btn" @onclick="PrzejdzDoWyszukiwania">Szukaj</button>
 </div>
 
 @* Sekcja Wyników *@
@@ -109,16 +110,22 @@
 
         Offers = new List<OfferViewModel>();
 
-        // Aby przetestować wygląd z danymi:
-        /*
-        Offers = new List<OfferViewModel> {
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https:images.unsplash.com/photo-1566073771259-6a8506099945?w=400" },
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https:images.unsplash.com/photo-1566073771259-6a8506099945?w=400" },
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https:images.unsplash.com/photo-1566073771259-6a8506099945?w=400" },
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https:images.unsplash.com/photo-1566073771259-6a8506099945?w=400" }
-        };
-        */
+        // Przykładowe dane:
         
+        Offers = new List<OfferViewModel> {
+            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" },
+            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" },
+            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" },
+            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" }
+        };
+        
+        
+    }
+
+    private void PrzejdzDoWyszukiwania()
+    {
+        //Przenosi użytkownika na podstronę /search
+        NavManager.NavigateTo("search");
     }
 }
 

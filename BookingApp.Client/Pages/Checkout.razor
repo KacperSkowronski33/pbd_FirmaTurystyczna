@@ -1,0 +1,257 @@
+﻿@page "/checkout/{OfferId:int}"
+@inject NavigationManager NavManager
+
+<div class="container mt-4 pb-5">
+    @* STEPPER *@
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-10">
+            <div class="stepper-wrapper d-flex justify-content-between position-relative">
+                <div class="stepper-line"></div>
+                <div class="stepper-item @(CurrentStep >= 1 ? "active" : "")">
+                    <div class="step-counter">1</div>
+                    <div class="step-name">Dane podróżnych</div>
+                </div>
+                <div class="stepper-item @(CurrentStep >= 2 ? "active" : "")">
+                    <div class="step-counter">2</div>
+                    <div class="step-name">Dodatki</div>
+                </div>
+                <div class="stepper-item @(CurrentStep >= 3 ? "active" : "")">
+                    <div class="step-counter">3</div>
+                    <div class="step-name">Podsumowanie</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        @* LEWA KOLUMNA: FORMULARZE *@
+        <div class="col-lg-8">
+            @if (CurrentStep == 1)
+            {
+                <div class="card shadow-sm border-0 p-4 animate-slide">
+                    <h4 class="fw-bold mb-4">Uczestnicy wyjazdu</h4>
+                    @for (int i = 1; i <= 2; i++)
+                    {
+                        <div class="mb-4 p-3 border rounded">
+                            <h6 class="fw-bold text-primary mb-3">Podróżny #@i</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Imię</label>
+                                    <input type="text" class="form-control" placeholder="Jan">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Nazwisko</label>
+                                    <input type="text" class="form-control" placeholder="Kowalski">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Data urodzenia</label>
+                                    <input type="date" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else if (CurrentStep == 2)
+            {
+                <div class="card shadow-sm border-0 p-4 animate-slide">
+                    <h4 class="fw-bold mb-4">Dodatki do podróży</h4>
+                    <div class="list-group">
+                        <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Ubezpieczenie", 150, (bool)e.Value)'>
+                                <strong>Ubezpieczenie Premium</strong>
+                                <div class="small text-muted">Pełna ochrona kosztów leczenia i rezygnacji.</div>
+                            </div>
+                            <span class="badge bg-light text-dark border">+150 zł / os.</span>
+                        </label>
+                        <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Transfer", 80, (bool)e.Value)'>
+                                <strong>Prywatny transfer z lotniska</strong>
+                                <div class="small text-muted">Kierowca będzie czekał w hali przylotów.</div>
+                            </div>
+                            <span class="badge bg-light text-dark border">+80 zł</span>
+                        </label>
+                        <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Bagaż", 220, (bool)e.Value)'>
+                                <strong>Dodatkowy bagaż rejestrowany (20kg)</strong>
+                                <div class="small text-muted">Dodatkowa walizka dla każdego pasażera.</div>
+                            </div>
+                            <span class="badge bg-light text-dark border">+220 zł</span>
+                        </label>
+                    </div>
+                </div>
+            }
+            else if (CurrentStep == 3)
+            {
+                <div class="card shadow-sm border-0 p-4 animate-slide">
+                    <h4 class="fw-bold mb-4">Podsumowanie i płatność</h4>
+                    <div class="alert alert-warning border-0 small">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        Sprawdź poprawność danych przed dokonaniem płatności. Zmiana nazwiska po rezerwacji może wiązać się z dodatkową opłatą.
+                    </div>
+                    <div class="mb-4">
+                        <h6 class="fw-bold">Metoda płatności</h6>
+                        <div class="d-flex gap-3">
+                            <div class="payment-card active p-3 border rounded text-center cursor-pointer">
+                                <i class="bi bi-credit-card fs-3"></i>
+                                <div class="small">Karta / BLIK</div>
+                            </div>
+                            <div class="payment-card p-3 border rounded text-center cursor-pointer opacity-50">
+                                <i class="bi bi-bank fs-3"></i>
+                                <div class="small">Przelew</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* NAWIGACJA PRZYCISKAMI *@
+            <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-outline-secondary px-4 rounded-pill" @onclick="PrevStep" disabled="@(CurrentStep == 1)">Wstecz</button>
+                @if (CurrentStep < 3)
+                {
+                    <button class="btn btn-primary px-5 rounded-pill shadow" @onclick="NextStep">Dalej</button>
+                }
+                else
+                {
+                    <button class="btn btn-success px-5 rounded-pill shadow fw-bold" @onclick="FinalizePayment">POTWIERDZAM I PŁACĘ</button>
+                }
+            </div>
+        </div>
+
+        @* PRAWA KOLUMNA: PODSUMOWANIE KWOT *@
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 sticky-top" style="top: 100px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Twoje zestawienie</h5>
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span>Cena bazowa (2 osoby)</span>
+                        <span>@BasePrice zł</span>
+                    </div>
+                    @foreach (var addon in SelectedAddons)
+                    {
+                        <div class="d-flex justify-content-between small mb-2 text-success">
+                            <span>+ @addon.Key</span>
+                            <span>@addon.Value zł</span>
+                        </div>
+                    }
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-0">
+                        <span class="fw-bold fs-5">Do zapłaty:</span>
+                        <span class="fw-bold fs-4 text-primary">@TotalPrice zł</span>
+                    </div>
+                    <div class="text-muted small">Cena zawiera podatki i opłaty</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int OfferId { get; set; }
+    private int CurrentStep = 1;
+    private decimal BasePrice = 4998;
+    private Dictionary<string, decimal> SelectedAddons = new();
+
+    private decimal TotalPrice => BasePrice + SelectedAddons.Sum(x => x.Value);
+
+    private void NextStep() => CurrentStep++;
+    private void PrevStep() => CurrentStep--;
+
+    private void ToggleAddon(string name, decimal price, bool isSelected)
+    {
+        if (isSelected) SelectedAddons[name] = price;
+        else SelectedAddons.Remove(name);
+    }
+
+    private void FinalizePayment()
+    {
+        // Tutaj integracja z bramką płatności
+        NavManager.NavigateTo("/"); // Tymczasowo powrót do głównej
+    }
+}
+
+<style>
+    /* Stepper Styles */
+    .stepper-wrapper {
+        margin-bottom: 2rem;
+    }
+
+    .stepper-line {
+        position: absolute;
+        top: 17px;
+        left: 10%;
+        right: 10%;
+        height: 2px;
+        background: #e0e0e0;
+        z-index: 0;
+    }
+
+    .stepper-item {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        width: 100px;
+    }
+
+    .step-counter {
+        width: 35px;
+        height: 35px;
+        background: #fff;
+        border: 2px solid #e0e0e0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
+        font-weight: bold;
+        color: #999;
+        transition: 0.3s;
+    }
+
+    .stepper-item.active .step-counter {
+        background: #003580;
+        color: #fff;
+        border-color: #003580;
+    }
+
+    .step-name {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #999;
+    }
+
+    .stepper-item.active .step-name {
+        color: #003580;
+        font-weight: bold;
+    }
+
+    /* Forms & Misc */
+    .cursor-pointer {
+        cursor: pointer;
+    }
+
+    .animate-slide {
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .payment-card.active {
+        border: 2px solid #003580 !important;
+        background-color: #f0f4f8;
+    }
+</style>
