@@ -1,7 +1,272 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Wymarzone Wakacje</PageTitle>
 
-<h1>Hello, world!</h1>
+<style>
+    /* Systemowe fonty i podstawowe resety dla czystego wyglądu */
+    * {
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-Welcome to your new app.
+    /* Kolory w stylu popularnych portali rezerwacyjnych */
+    :root {
+        --primary-blue: #003580;
+        --secondary-blue: #0071c2;
+        --accent-yellow: #febb02;
+        --bg-light: #f5f5f5;
+        --text-dark: #262626;
+    }
+
+    /* Sekcja Nawigacji */
+    .navbar {
+        background-color: var(--primary-blue);
+        color: white;
+        padding: 15px 10%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .auth-buttons button {
+        background-color: white;
+        color: var(--secondary-blue);
+        border: none;
+        padding: 10px 15px;
+        margin-left: 10px;
+        border-radius: 3px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .auth-buttons button:hover {
+        background-color: #f1f1f1;
+    }
+
+    /* Sekcja Header (Niebieskie tło pod wyszukiwarką) */
+    .hero-section {
+        background-color: var(--primary-blue);
+        color: white;
+        padding: 50px 10% 100px 10%;
+    }
+
+    .hero-section h1 {
+        font-size: 48px;
+        margin: 0 0 10px 0;
+    }
+
+    .hero-section p {
+        font-size: 24px;
+        margin: 0;
+    }
+
+    /* Żółta Wyszukiwarka */
+    .search-container {
+        background-color: var(--accent-yellow);
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        gap: 4px;
+        max-width: 1000px;
+        margin: -30px auto 0 auto;
+        position: relative;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+
+    .search-input-group {
+        display: flex;
+        flex: 1;
+        background: white;
+        align-items: center;
+        padding: 0 15px;
+        border-radius: 2px;
+    }
+
+    .search-input-group input {
+        border: none;
+        padding: 15px 0;
+        width: 100%;
+        font-size: 16px;
+        outline: none;
+    }
+
+    .search-btn {
+        background-color: var(--secondary-blue);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 2px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .search-btn:hover {
+        background-color: #005999;
+    }
+
+    /* Sekcja Ogłoszeń */
+    .listings-section {
+        padding: 60px 10%;
+        background-color: white;
+    }
+
+    .listings-section h2 {
+        color: var(--text-dark);
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    /* Style dla makiet (placeholderów) */
+    .card-placeholder {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 320px;
+    }
+
+    .placeholder-photo {
+        height: 200px;
+        background-color: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #777;
+        font-weight: bold;
+        border-bottom: 2px dashed #ccc;
+    }
+
+    .placeholder-content {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        gap: 10px;
+    }
+
+    .placeholder-box {
+        border: 1px dashed #bbb;
+        background-color: white;
+        color: #888;
+        padding: 8px;
+        text-align: center;
+        font-size: 14px;
+        border-radius: 4px;
+    }
+
+    .placeholder-footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+    }
+</style>
+
+<div class="navbar">
+    <div class="logo-container">
+        <span style="font-size: 28px;"><img src="images/logo.jpg" style="hight:75px; width:100px;"></span> 
+        Wymarzone Wakacje
+    </div>
+    <div class="auth-buttons">
+        <button>Zarejestruj się</button>
+        <button>Zaloguj</button>
+    </div>
+</div>
+
+<div class="hero-section">
+    <h1>Znajdź swój następny pobyt</h1>
+    <p>Szukaj ofert hoteli, domów i innych obiektów...</p>
+</div>
+
+<div class="search-container">
+    <div class="search-input-group" style="flex: 1.5;">
+        <span style="margin-right: 10px;">🛏️</span>
+        <input type="text" id="miejsce" name="miejsce" placeholder="Dokąd się wybierasz?" />
+    </div>
+    <div class="search-input-group">
+        <span style="margin-right: 10px;">📅</span>
+        <input type="date" id="data_od" name="data_od" title="Data zameldowania" />
+        <span style="margin: 0 10px;">-</span>
+        <input type="date" id="data_do" name="data_do" title="Data wymeldowania" />
+    </div>
+    <div class="search-input-group">
+        <span style="margin-right: 10px;">👤</span>
+        <input type="text" id="osoby" name="osoby" placeholder="2 dorosłych · 0 dzieci · 1 pokój" />
+    </div>
+    <button class="search-btn">Szukaj</button>
+</div>
+
+<div class="listings-section">
+    <h2>Wyniki wyszukiwania</h2>
+    
+    <div class="grid-container">
+        
+        <div class="card-placeholder">
+            <div class="placeholder-photo">[ Tu miejsce na zdjęcie ]</div>
+            <div class="placeholder-content">
+                <div class="placeholder-box" style="font-weight: bold; color: #555;">[ Tu tytuł obiektu ]</div>
+                <div class="placeholder-box" style="font-size: 12px;">[ Tu lokalizacja / odległość ]</div>
+                <div class="placeholder-footer">
+                    <div class="placeholder-box" style="width: 45%;">[ Tu ocena ]</div>
+                    <div class="placeholder-box" style="width: 50%; font-weight: bold;">[ Tu cena ]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-placeholder">
+            <div class="placeholder-photo">[ Tu miejsce na zdjęcie ]</div>
+            <div class="placeholder-content">
+                <div class="placeholder-box" style="font-weight: bold; color: #555;">[ Tu tytuł obiektu ]</div>
+                <div class="placeholder-box" style="font-size: 12px;">[ Tu lokalizacja / odległość ]</div>
+                <div class="placeholder-footer">
+                    <div class="placeholder-box" style="width: 45%;">[ Tu ocena ]</div>
+                    <div class="placeholder-box" style="width: 50%; font-weight: bold;">[ Tu cena ]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-placeholder">
+            <div class="placeholder-photo">[ Tu miejsce na zdjęcie ]</div>
+            <div class="placeholder-content">
+                <div class="placeholder-box" style="font-weight: bold; color: #555;">[ Tu tytuł obiektu ]</div>
+                <div class="placeholder-box" style="font-size: 12px;">[ Tu lokalizacja / odległość ]</div>
+                <div class="placeholder-footer">
+                    <div class="placeholder-box" style="width: 45%;">[ Tu ocena ]</div>
+                    <div class="placeholder-box" style="width: 50%; font-weight: bold;">[ Tu cena ]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-placeholder">
+            <div class="placeholder-photo">[ Tu miejsce na zdjęcie ]</div>
+            <div class="placeholder-content">
+                <div class="placeholder-box" style="font-weight: bold; color: #555;">[ Tu tytuł obiektu ]</div>
+                <div class="placeholder-box" style="font-size: 12px;">[ Tu lokalizacja / odległość ]</div>
+                <div class="placeholder-footer">
+                    <div class="placeholder-box" style="width: 45%;">[ Tu ocena ]</div>
+                    <div class="placeholder-box" style="width: 50%; font-weight: bold;">[ Tu cena ]</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

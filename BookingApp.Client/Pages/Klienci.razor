@@ -1,0 +1,54 @@
+﻿@page "/klienci"
+@inject HttpClient Http
+
+<h3>Klienci</h3>
+
+@if (klienci == null)
+{
+    <p>Ładowanie...</p>
+}
+else if (!klienci.Any())
+{
+    <p>Brak klientów</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Email</th>
+                <th>Imię</th>
+                <th>Nazwisko</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var k in klienci)
+            {
+                <tr>
+                    <td>@k.Id</td>
+                    <td>@k.Email</td>
+                    <td>@k.Imie</td>
+                    <td>@k.Nazwisko</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<KlientDto> klienci;
+
+    protected override async Task OnInitializedAsync()
+    {
+        klienci = await Http.GetFromJsonAsync<List<KlientDto>>("api/klienci");
+    }
+
+    public class KlientDto
+    {
+        public int Id { get; set; }
+        public string Email { get; set; }
+        public string Imie { get; set; }
+        public string Nazwisko { get; set; }
+    }
+}
