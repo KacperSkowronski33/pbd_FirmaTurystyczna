@@ -37,7 +37,7 @@ namespace BookingApp.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Rezerwacja>> PostOferta(CreateOfertaDto o)
+        public async Task<ActionResult<Oferta>> PostOferta(CreateOfertaDto o)
         {
             var nowy = new Oferta
             {
