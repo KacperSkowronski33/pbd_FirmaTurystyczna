@@ -36,7 +36,7 @@ namespace BookingApp.Api.Controllers
             return Ok(klienci);
         }
         [HttpPost]
-        public async Task<ActionResult<Rezerwacja>> PostKlient(CreateKlientDto k)
+        public async Task<ActionResult<Klient>> PostKlient(CreateKlientDto k)
         {
             var nowy = new Klient
             {

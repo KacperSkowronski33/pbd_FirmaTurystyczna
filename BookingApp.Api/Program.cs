@@ -1,6 +1,9 @@
+using System.Text;
 using BookingApp.Api.Data;
-using Microsoft.EntityFrameworkCore;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,11 +19,27 @@ builder.Services.AddValidatorsFromAssemblyContaining<BookingApp.Api.Validators.C
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorClient",
-        builder => builder
-            .AllowAnyOrigin()
+        policy => policy.WithOrigins("https://localhost:7048") 
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
+//builder.Services.AddAuthorization(); //[authorize]
 
 var app = builder.Build();
 
@@ -35,6 +54,7 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowBlazorClient");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
