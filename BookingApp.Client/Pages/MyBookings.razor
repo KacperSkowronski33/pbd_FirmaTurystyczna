@@ -1,0 +1,168 @@
+﻿@page "/my-bookings"
+@inject NavigationManager NavManager
+
+<div class="container mt-4 pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Moje rezerwacje</h2>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary btn-sm active">Wszystkie</button>
+            <button class="btn btn-outline-primary btn-sm">Nadchodzące</button>
+        </div>
+    </div>
+
+    @if (UserBookings == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Wczytywanie Twoich podróży...</p>
+        </div>
+    }
+    else if (!UserBookings.Any())
+    {
+        <div class="text-center py-5 border rounded bg-light">
+            <i class="bi bi-calendar-x fs-1 text-muted"></i>
+            <h5 class="mt-3">Nie masz jeszcze żadnych rezerwacji</h5>
+            <p class="text-muted">Twoje wymarzone wakacje czekają na Ciebie!</p>
+            <button class="btn btn-primary rounded-pill px-4" @onclick='() => NavManager.NavigateTo("/")'>Zacznij szukać</button>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var booking in UserBookings)
+            {
+                <div class="col-12">
+                    <div class="card booking-card shadow-sm border-0 overflow-hidden">
+                        <div class="row g-0">
+                            @* Miniatura *@
+                            <div class="col-md-3">
+                                <div class="h-100 min-vh-20" style="background: url('@booking.HotelImageUrl') center/cover"></div>
+                            </div>
+
+                            @* Treść *@
+                            <div class="col-md-9">
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge @GetStatusClass(booking.Status) mb-2">@booking.Status</span>
+                                            <h5 class="fw-bold mb-1">@booking.HotelName</h5>
+                                            <p class="text-muted small mb-0"><i class="bi bi-geo-alt"></i> @booking.Location</p>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="small text-muted">Numer rezerwacji</div>
+                                            <div class="fw-bold">#@booking.BookingNumber</div>
+                                        </div>
+                                    </div>
+
+                                    <hr>
+
+                                    <div class="row align-items-center">
+                                        <div class="col-sm-4">
+                                            <div class="small text-muted text-uppercase">Termin</div>
+                                            <div class="fw-bold">@booking.DateRange</div>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <div class="small text-muted text-uppercase">Kwota</div>
+                                            <div class="fw-bold text-primary">@booking.TotalPrice zł</div>
+                                        </div>
+                                        <div class="col-sm-5 text-md-end mt-3 mt-md-0">
+                                            <button class="btn btn-outline-primary rounded-pill px-4 me-2">Pobierz PDF</button>
+                                            <button class="btn btn-primary rounded-pill px-4" @onclick='() => NavManager.NavigateTo($"/offer-details/{booking.HotelId}")'>
+                                                Szczegóły
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<BookingModel>? UserBookings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(800); // Symulacja bazy danych
+
+        // Przykładowe dane z bazy
+        UserBookings = new List<BookingModel>
+        {
+            new BookingModel {
+                BookingNumber = "BA-99210",
+                HotelId = 101,
+                HotelName = "Hotel Marina Grand & Spa",
+                Location = "Turcja, Alanya",
+                HotelImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400",
+                DateRange = "12.06.2026 - 19.06.2026",
+                TotalPrice = 4998,
+                Status = "Opłacona"
+            },
+            new BookingModel {
+                BookingNumber = "BA-88412",
+                HotelId = 105,
+                HotelName = "Sun & Sands Resort",
+                Location = "Egipt, Hurghada",
+                HotelImageUrl = "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400",
+                DateRange = "05.09.2025 - 12.09.2025",
+                TotalPrice = 3200,
+                Status = "Oczekująca"
+            },
+            new BookingModel {
+                BookingNumber = "BA-77102",
+                HotelId = 202,
+                HotelName = "Mountain Retreat",
+                Location = "Polska, Zakopane",
+                HotelImageUrl = "https://images.unsplash.com/photo-1519449556851-5720b33024e7?w=400",
+                DateRange = "10.01.2025 - 15.01.2025",
+                TotalPrice = 2150,
+                Status = "Anulowana"
+            }
+        };
+    }
+
+    private string GetStatusClass(string status) => status switch
+    {
+        "Opłacona" => "bg-success-subtle text-success",
+        "Oczekująca" => "bg-warning-subtle text-warning-emphasis",
+        "Anulowana" => "bg-danger-subtle text-danger",
+        _ => "bg-secondary-subtle text-secondary"
+    };
+
+    public class BookingModel
+    {
+        public string BookingNumber { get; set; } = "";
+        public int HotelId { get; set; }
+        public string HotelName { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string HotelImageUrl { get; set; } = "";
+        public string DateRange { get; set; } = "";
+        public decimal TotalPrice { get; set; }
+        public string Status { get; set; } = "";
+    }
+}
+
+<style>
+    .booking-card {
+        transition: transform 0.2s;
+        border: 1px solid #eee !important;
+    }
+
+        .booking-card:hover {
+            transform: translateY(-2px);
+        }
+
+    .min-vh-20 {
+        min-height: 200px;
+    }
+
+    .badge {
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+</style>

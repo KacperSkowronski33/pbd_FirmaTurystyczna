@@ -1,0 +1,167 @@
+﻿@page "/search"
+@inject NavigationManager NavManager
+
+<div class="container mt-4">
+    <div class="row">
+        @* SIDEBAR Z FILTRAMI *@
+        <aside class="col-lg-3">
+            <div class="filter-card p-3 bg-white shadow-sm rounded border">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Filtruj wyniki</h6>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">Budżet (do @PriceLimit zł)</label>
+                    <input type="range" class="form-range" min="500" max="10000" step="100" @bind="PriceLimit" @bind:event="oninput">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">Standard</label>
+                    <div class="form-check small">
+                        <input class="form-check-input" type="checkbox"> 3 gwiazdki
+                    </div>
+                    <div class="form-check small">
+                        <input class="form-check-input" type="checkbox"> 4 gwiazdki
+                    </div>
+                    <div class="form-check small">
+                        <input class="form-check-input" type="checkbox"> 5 gwiazdek
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">Wyżywienie</label>
+                    <select class="form-select form-select-sm">
+                        <option>Wszystkie</option>
+                        <option>All Inclusive</option>
+                        <option>Śniadania i obiadokolacje</option>
+                    </select>
+                </div>
+            </div>
+        </aside>
+
+        @* LISTA WYNIKÓW *@
+        <main class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Znaleziono: @(FoundOffers?.Count ?? 0) ofert</h5>
+                <select class="form-select form-select-sm w-auto">
+                    <option>Najniższa cena</option>
+                    <option>Najlepsze oceny</option>
+                </select>
+            </div>
+
+            @if (FoundOffers == null)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Szukamy najlepszych ofert...</p>
+                </div>
+            }
+            else if (!FoundOffers.Any())
+            {
+                <div class="alert alert-info shadow-sm">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Nie znaleźliśmy ofert spełniających Twoje kryteria. Spróbuj zmienić filtry.
+                </div>
+            }
+            else
+            {
+                @foreach (var offer in FoundOffers)
+                {
+                    <div class="card mb-3 horizontal-offer shadow-sm border-0">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <div class="h-100 min-vh-20 bg-light position-relative" style="background: url('@offer.ImageUrl') center/cover">
+                                    @if (offer.IsBestseller)
+                                    {
+                                        <span class="badge bg-warning text-dark position-absolute m-2 top-0 start-0">Bestseller</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body d-flex flex-column h-100">
+                                    <div class="d-flex justify-content-between">
+                                        <h5 class="card-title fw-bold">@offer.Title</h5>
+                                        <div class="text-primary fw-bold">@offer.Rating / 10</div>
+                                    </div>
+                                    <p class="card-text text-muted small">@offer.Description</p>
+                                    <div class="mt-auto d-flex justify-content-between align-items-end">
+                                        <div class="tags">
+                                            @foreach (var tag in offer.Tags)
+                                            {
+                                                <span class="badge border text-muted fw-normal me-1">@tag</span>
+                                            }
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="text-muted small">Cena za osobę</div>
+                                            <div class="fs-4 fw-bold text-primary">@offer.Price zł</div>
+                                            <button class="btn btn-primary btn-sm px-4 rounded-pill"
+                                                    @onclick='() => NavManager.NavigateTo($"offer-details/{offer.Id}")'>
+                                                Wybierz
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </main>
+    </div>
+</div>
+
+@code {
+    private int PriceLimit = 5000;
+
+    private List<SearchOffer>? FoundOffers;
+
+    public class SearchOffer
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public string ImageUrl { get; set; } = "";
+        public string Rating { get; set; } = "";
+        public List<string> Tags { get; set; } = new();
+        public bool IsBestseller { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(500);
+
+        FoundOffers = new List<SearchOffer>
+    {
+        new SearchOffer
+        {
+            Id = 101,
+            Title = "Hotel Testowy",
+            Description = "Jeśli to widzisz, wyszukiwarka działa!",
+            Price = 1500,
+            ImageUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400",
+            Rating = "9.5",
+            //Tags = new List<string> { "Basen", "Wi-Fi" }
+        }
+    };
+    }
+}
+
+<style>
+    .horizontal-offer {
+        min-height: 200px;
+        transition: 0.2s;
+        overflow: hidden;
+    }
+
+        .horizontal-offer:hover {
+            transform: scale(1.005);
+        }
+
+    .min-vh-20 {
+        min-height: 200px;
+    }
+
+    .filter-card {
+        position: sticky;
+        top: 90px;
+    }
+</style>

@@ -1,0 +1,221 @@
+﻿@page "/offer-details/{Id:int}"
+@inject NavigationManager NavManager
+
+<div class="container mt-4">
+    @if (CurrentOffer == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Pobieranie szczegółów oferty...</p>
+        </div>
+    }
+    else
+    {
+        @* Nagłówek *@
+        <div class="row mb-4">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb small">
+                        <li class="breadcrumb-item"><a href="/">Strona główna</a></li>
+                        <li class="breadcrumb-item"><a href="/search">Wyniki wyszukiwania</a></li>
+                        <li class="breadcrumb-item active">@CurrentOffer.Title</li>
+                    </ol>
+                </nav>
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <div>
+                        <h2 class="fw-bold mb-1">@CurrentOffer.Title</h2>
+                        <p class="text-muted mb-0"><i class="bi bi-geo-alt-fill text-primary"></i> @CurrentOffer.Location</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary fs-5">@CurrentOffer.Rating / 10</span>
+                        <p class="small text-muted mb-0">(@CurrentOffer.ReviewCount opinii)</p>
+                    </div>
+                </div>
+            </div>
+
+            @* Galeria *@
+            <div class="col-lg-8">
+                <div class="main-photo mb-2" style="background-image: url('@CurrentOffer.ImageUrl')"></div>
+                <div class="row g-2">
+                    @foreach (var img in CurrentOffer.GalleryUrls.Take(4))
+                    {
+                        <div class="col-3">
+                            <div class="sub-photo" style="background-image: url('@img')"></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @* Panel Rezerwacji (Sticky) *@
+            <div class="col-lg-4">
+                <div class="booking-widget p-4 shadow-sm border rounded bg-white">
+                    <h5 class="fw-bold mb-3">Twoja rezerwacja</h5>
+                    <div class="mb-3 p-2 bg-light rounded">
+                        <div class="small fw-bold">Wybrany termin:</div>
+                        <div class="small">Dostępne od zaraz</div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Cena za osobę:</span>
+                            <span class="fw-bold">@CurrentOffer.Price zł</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold fs-5">Suma:</span>
+                            <span class="fw-bold fs-4 text-primary">@(CurrentOffer.Price * 2) zł</span>
+                        </div>
+                        <p class="text-muted small mt-2">Cena za 2 osoby dorosłe</p>
+                    </div>
+                    <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow" @onclick="HandleBooking">REZERWUJ TERAZ</button>
+                </div>
+            </div>
+        </div>
+
+        @* Sekcja Zakładek *@
+        <div class="row mt-4">
+            <div class="col-lg-8">
+                <ul class="nav nav-tabs custom-tabs mb-4">
+                    <li class="nav-item">
+                        <button class="nav-link @(ActiveTab == "hotel" ? "active" : "")" @onclick='() => ActiveTab = "hotel"'>O hotelu</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(ActiveTab == "rooms" ? "active" : "")" @onclick='() => ActiveTab = "rooms"'>Pokoje</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(ActiveTab == "reviews" ? "active" : "")" @onclick='() => ActiveTab = "reviews"'>Opinie</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pb-5">
+                    @if (ActiveTab == "hotel")
+                    {
+                        <div class="animate-fade-in">
+                            <h5 class="fw-bold">Opis obiektu</h5>
+                            <p>@CurrentOffer.Description</p>
+                            <h6 class="fw-bold mt-3">Udogodnienia:</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var tag in CurrentOffer.Tags)
+                                {
+                                    <span class="badge bg-light text-dark border fw-normal">@tag</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (ActiveTab == "rooms")
+                    {
+                        <div class="animate-fade-in">
+                            <p>Szczegółowe informacje o dostępnych pokojach w obiekcie @CurrentOffer.Title zostaną pobrane z bazy.</p>
+                        </div>
+                    }
+                    @if (ActiveTab == "reviews")
+                    {
+                        <div class="animate-fade-in">
+                            <p>Średnia ocena: @CurrentOffer.Rating / 10 na podstawie @CurrentOffer.ReviewCount opinii.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private string ActiveTab = "hotel";
+    private OfferDetailModel? CurrentOffer;
+
+
+    private void HandleBooking()
+    {
+        // Nawigacja do checkoutu
+        NavManager.NavigateTo($"/checkout/{Id}");
+    }
+
+    public class OfferDetailModel
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public string ImageUrl { get; set; } = "";
+        public List<string> GalleryUrls { get; set; } = new();
+        public string Rating { get; set; } = "";
+        public int ReviewCount { get; set; }
+        public List<string> Tags { get; set; } = new();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //CurrentOffer = await Http.GetFromJsonAsync<OfferDetailModel>($"api/offers/{Id}");
+        await Task.Delay(500);
+
+        // Przykładowa oferta
+        if (Id == 101)
+        {
+            CurrentOffer = new OfferDetailModel
+            {
+                Id = 101,
+                Title = "Hotel Testowy (Szczegóły)",
+                Location = "Testowo, Polska",
+                Description = "Pełny opis wczytany dynamicznie dla ID 101.",
+                Price = 1500,
+                ImageUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
+                Rating = "9.5",
+                ReviewCount = 42,
+                GalleryUrls = new List<string> { "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=200" },
+                //Tags = new List<string> { "Basen", "Wi-Fi", "Parking" }
+            };
+        }
+    }
+}
+
+<style>
+    .main-photo {
+        height: 400px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 12px;
+    }
+
+    .sub-photo {
+        height: 100px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 8px;
+        background-color: #f0f0f0;
+    }
+
+    .booking-widget {
+        position: sticky;
+        top: 100px;
+        z-index: 10;
+    }
+
+    .custom-tabs .nav-link {
+        border: none;
+        color: #666;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+    }
+
+        .custom-tabs .nav-link.active {
+            color: #003580;
+            border-bottom: 3px solid #febb02;
+            background: none;
+        }
+
+    .animate-fade-in {
+        animation: fadeIn 0.3s;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
