@@ -1,4 +1,5 @@
 using BookingApp.Api.Data;
+using BookingApp.Shared.ApiResponse;
 using BookingApp.Shared.DTOs.HotelDto;
 using BookingApp.Shared.DTOs.OfertaDto;
 using BookingApp.Shared.DTOs.RezerwacjaDto;
@@ -20,7 +21,7 @@ namespace BookingApp.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadOfertaDto>>> GetOferta()
+        public async Task<ActionResult<ApiResponse<IEnumerable<ReadOfertaDto>>>> GetOferta()
         {
             var oferty = await _context.Oferty
                 .AsNoTracking()
@@ -33,11 +34,11 @@ namespace BookingApp.Api.Controllers
                     TypWyzywienia = o.TypWyzywienia,
                     TerminyCeny = o.TerminyCeny,
                 }).ToListAsync();
-            return Ok(oferty);
+            return Ok(ApiResponse<IEnumerable<ReadOfertaDto>>.Ok(oferty));
         }
 
         [HttpPost]
-        public async Task<ActionResult<Oferta>> PostOferta(CreateOfertaDto o)
+        public async Task<ActionResult<ApiResponse<Oferta>>> PostOferta(CreateOfertaDto o)
         {
             var nowy = new Oferta
             {
@@ -49,7 +50,7 @@ namespace BookingApp.Api.Controllers
             };
             _context.Oferty.Add(nowy);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetOferta), new { id = nowy.Id }, nowy);
+            return CreatedAtAction(nameof(GetOferta), new { id = nowy.Id }, ApiResponse<Oferta>.Ok(nowy, "Oferta została dodana"));
         }
         [HttpPut("{id}")]
         public async Task<IActionResult> PutOferta(int id, UpdateOfertaDto o)
@@ -57,7 +58,7 @@ namespace BookingApp.Api.Controllers
             var ofertyBaza = await _context.Oferty.FindAsync(id);
             if (ofertyBaza == null)
             {
-                return NotFound($"Oferta o id {id} nie istnieje w bazie");
+                return NotFound(ApiResponse.Error($"Oferta o id {id} nie istnieje w bazie"));
             }
             ofertyBaza.HotelId = o.HotelId;
             ofertyBaza.TypWyzywieniaId = o.TypWyzywieniaId;
@@ -65,7 +66,7 @@ namespace BookingApp.Api.Controllers
             ofertyBaza.TypWyzywienia = o.TypWyzywienia;
             ofertyBaza.TerminyCeny = o.TerminyCeny;
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(ApiResponse.Ok("Oferta została zaktualizowana"));
         }
 
 
@@ -75,11 +76,11 @@ namespace BookingApp.Api.Controllers
             var Oferta = await _context.Oferty.FindAsync(id);
             if (Oferta == null)
             {
-                return NotFound($"oferta o id = {id} nie istnieje w bazie");
+                return NotFound(ApiResponse.Error($"Oferta o id {id} nie istnieje w bazie"));
             }
             _context.Oferty.Remove(Oferta);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(ApiResponse.Ok("Oferta została usunięta"));
         }
     }
 }

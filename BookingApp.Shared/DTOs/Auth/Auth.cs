@@ -14,8 +14,6 @@ namespace BookingApp.Shared.DTOs.Auth
 
     public class LoginResultDto
     {
-        public bool Success { get; set; }
         public string? Token { get; set; }
-        public string? Wiadomosc { get; set; }
     }
 }

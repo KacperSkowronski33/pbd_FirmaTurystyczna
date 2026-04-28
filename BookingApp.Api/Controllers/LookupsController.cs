@@ -1,4 +1,7 @@
-﻿using BookingApp.Api.Data;
+﻿using System.Diagnostics;
+using BookingApp.Api.Data;
+using BookingApp.Shared.ApiResponse;
+using BookingApp.Shared.DTOs.HotelDto;
 using BookingApp.Shared.DTOs.Lookups;
 using BookingApp.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +22,7 @@ namespace BookingApp.Api.Controllers
         //kraje
 
         [HttpGet("kraje")]
-        public async Task<ActionResult<IEnumerable<KrajDto>>> GetKraje()
+        public async Task<ActionResult<ApiResponse<IEnumerable<KrajDto>>>> GetKraje()
         {
             var kraje = await _context.Kraje
                 .AsNoTracking()
@@ -29,7 +32,7 @@ namespace BookingApp.Api.Controllers
                     Nazwa = k.Nazwa,
                 })
                 .ToListAsync();
-            return Ok(kraje);
+            return Ok(ApiResponse<IEnumerable<KrajDto>>.Ok(kraje));
         }
         [HttpPost("kraje")]
         public async Task<ActionResult> PostKraj(CreateKrajDto dto)
@@ -38,13 +41,14 @@ namespace BookingApp.Api.Controllers
             _context.Add(nowyKraj);
             await _context.SaveChangesAsync();
             //return Ok($"Kraj {nowyKraj.Nazwa} został utowrzony - id {nowyKraj.Id}"); - wyrzucilby 200ok , created wyrzuci 201created
-            return CreatedAtAction(nameof(GetKraje), new { id = nowyKraj.Id }, nowyKraj);
+            return CreatedAtAction(nameof(GetKraje), new { id = nowyKraj.Id }, ApiResponse<Kraj>.Ok(nowyKraj, "Hotel został dodany"));
+
         }
 
         //miejscowosci
 
         [HttpGet("miejscowosci")]
-        public async Task<ActionResult<IEnumerable<MiejscowoscDto>>> GetMiejscowosci()
+        public async Task<ActionResult<ApiResponse<IEnumerable<MiejscowoscDto>>>> GetMiejscowosci()
         {
             var miejscowosci = await _context.Miejscowsci
                 .AsNoTracking()
@@ -55,7 +59,8 @@ namespace BookingApp.Api.Controllers
                     KrajId = m.KrajId,
                 })
                 .ToListAsync();
-            return Ok(miejscowosci);
+            return Ok(ApiResponse<IEnumerable<MiejscowoscDto>>.Ok(miejscowosci));
+
         }
 
         [HttpPost("miejscowosci")]
@@ -74,8 +79,9 @@ namespace BookingApp.Api.Controllers
 
             _context.Miejscowsci.Add(nowaMiejscowosc);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetMiejscowosci), new { id = nowaMiejscowosc.Id }, nowaMiejscowosc);
+            return CreatedAtAction(nameof(GetMiejscowosci), new { id = nowaMiejscowosc.Id }, ApiResponse<Miejscowosc>.Ok(nowaMiejscowosc, "Hotel został dodany"));
+
         }
-        
+
     }
 }

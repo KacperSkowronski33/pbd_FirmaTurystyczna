@@ -1,4 +1,9 @@
-﻿using BookingApp.Api.Data;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using BCrypt.Net;
+using BookingApp.Api.Data;
+using BookingApp.Shared.ApiResponse;
 using BookingApp.Shared.DTOs.Auth;
 using BookingApp.Shared.Models;
 using Microsoft.AspNetCore.Http;
@@ -6,10 +11,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using BCrypt.Net;
 
 
 namespace BookingApp.Api.Controllers
@@ -41,7 +42,7 @@ namespace BookingApp.Api.Controllers
                     .FirstOrDefaultAsync(p => p.Email == loginDto.Identifier);
                 if (pracownik == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, pracownik.Haslo))
                 {
-                    return Unauthorized(new LoginResultDto { Success = false, Wiadomosc = "Niepoprawny login lub hasło"});
+                    return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
                 }
                 rola = pracownik.Rola.TypRoli;
                 userMail = pracownik.Email;
@@ -52,8 +53,8 @@ namespace BookingApp.Api.Controllers
                     .FirstOrDefaultAsync(k => k.Email == loginDto.Identifier);
 
                 if(klient == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, klient.Haslo))
-                { 
-                    return Unauthorized(new LoginResultDto { Success = false, Wiadomosc = "Niepoprawny login lub hasło" });
+                {
+                    return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
                 }
 
                 rola = TypRoli.Brak;
@@ -63,8 +64,7 @@ namespace BookingApp.Api.Controllers
             }
 
             var token = GenJwtToken(userMail, rola, userName);
-            return Ok(new LoginResultDto { Success = true, Token = token });
-
+            return Ok(ApiResponse<LoginResultDto>.Ok(new LoginResultDto { Token = token }, "Zalogowano pomyślnie"));
         }
 
         private string GenJwtToken(string Mail, TypRoli Rola, string Name)
@@ -80,7 +80,7 @@ namespace BookingApp.Api.Controllers
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddDays(1);
+            var expires = DateTime.Now.AddDays(30);
 
             var Token = new JwtSecurityToken(
                 _configuration["Jwt:Issuer"],
