@@ -1,15 +1,17 @@
-﻿using BookingApp.Api.Data;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using BCrypt.Net;
+using BookingApp.Api.Data;
+using BookingApp.Shared.ApiResponse;
 using BookingApp.Shared.DTOs.Auth;
 using BookingApp.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using BCrypt.Net;
 
 
 namespace BookingApp.Api.Controllers
@@ -33,6 +35,7 @@ namespace BookingApp.Api.Controllers
             TypRoli rola = TypRoli.Brak;
             string userMail = "";
             string userName = "";
+            int userId = 0;
 
             if (!loginDto.Identifier.Contains("@"))
             {
@@ -41,38 +44,38 @@ namespace BookingApp.Api.Controllers
                     .FirstOrDefaultAsync(p => p.Email == loginDto.Identifier);
                 if (pracownik == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, pracownik.Haslo))
                 {
-                    return Unauthorized(new LoginResultDto { Success = false, Wiadomosc = "Niepoprawny login lub hasło"});
+                    return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
                 }
                 rola = pracownik.Rola.TypRoli;
                 userMail = pracownik.Email;
                 userName = $"{pracownik.Imie} {pracownik.Nazwisko}";
-            } else
+                userId = pracownik.Id;
+            }
+            else
             {
                 var klient = await _context.Klienci
                     .FirstOrDefaultAsync(k => k.Email == loginDto.Identifier);
 
-                if(klient == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, klient.Haslo))
-                { 
-                    return Unauthorized(new LoginResultDto { Success = false, Wiadomosc = "Niepoprawny login lub hasło" });
+                if (klient == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, klient.Haslo))
+                {
+                    return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
                 }
-
-                rola = TypRoli.Brak;
+                rola = TypRoli.Klient;
                 userMail = klient.Email;
                 userName = $"{klient.Imie} {klient.Nazwisko}";
-
+                userId = klient.Id;
             }
 
-            var token = GenJwtToken(userMail, rola, userName);
-            return Ok(new LoginResultDto { Success = true, Token = token });
-
+            var token = GenJwtToken(userId, userMail, rola, userName);
+            return Ok(ApiResponse<LoginResultDto>.Ok(new LoginResultDto { Token = token }, "Zalogowano pomyślnie"));
         }
 
-        private string GenJwtToken(string Mail, TypRoli Rola, string Name)
+        private string GenJwtToken(int Id, string Mail, TypRoli Rola, string Name)
         {
 
             var claims = new List<Claim>
             {
-
+                new Claim(ClaimTypes.NameIdentifier, Id.ToString()),
                 new Claim(ClaimTypes.Name, Name),
                 new Claim(ClaimTypes.Email, Mail),
                 new Claim(ClaimTypes.Role, Rola.ToString()),
@@ -80,7 +83,7 @@ namespace BookingApp.Api.Controllers
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddDays(1);
+            var expires = DateTime.Now.AddDays(30);
 
             var Token = new JwtSecurityToken(
                 _configuration["Jwt:Issuer"],
@@ -90,6 +93,48 @@ namespace BookingApp.Api.Controllers
                 signingCredentials: creds
                 );
             return new JwtSecurityTokenHandler().WriteToken(Token);
+        }
+
+        [HttpPost("register")]
+        public async Task<ActionResult<ApiResponse>> Register([FromBody] RegisterDto register)
+        {
+            var emailIstniejeWBazie = await _context.Klienci.AnyAsync(k => k.Email.ToLower() == register.Email.ToLower());
+            if (emailIstniejeWBazie)
+            {
+                return BadRequest(ApiResponse.Error("Podany adres email istnieje już w bazie"));
+            }
+            var noweKonto = new Klient
+            {
+                Imie = register.Imie,
+                Nazwisko = register.Nazwisko,
+                Email = register.Email,
+                Haslo = BCrypt.Net.BCrypt.HashPassword(register.Haslo)
+
+            };
+            _context.Klienci.Add(noweKonto);
+            await _context.SaveChangesAsync();
+            return Ok(ApiResponse.Ok("Rejestracja przebiegła pomyślnie."));
+        }
+
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse>> GetCurrentUser()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var rola = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+            {
+                return Unauthorized(ApiResponse.Error("Brak dostępu."));
+            }
+            if(rola != "Brak")
+            {
+                var pracownik = await _context.Pracownicy.FindAsync(id);
+                return Ok(ApiResponse<object>.Ok(new { pracownik.Imie, pracownik.Nazwisko, pracownik.Email, Rola = rola }));
+            } else
+            {
+                var klient = await _context.Klienci.FindAsync(id);
+                return Ok(ApiResponse<object>.Ok(new { klient.Imie, klient.Nazwisko, klient.Email, Rola = "Klient" }));
+            }
         }
     }
 }

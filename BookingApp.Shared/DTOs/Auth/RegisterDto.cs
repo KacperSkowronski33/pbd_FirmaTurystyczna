@@ -6,14 +6,12 @@ using System.Threading.Tasks;
 
 namespace BookingApp.Shared.DTOs.Auth
 {
-    public class LoginDto
+    public class RegisterDto
     {
-        public required string Identifier { get; set; }
+        public required string Imie {  get; set; }
+        public required string Nazwisko { get; set; }
+        public required string Email { get; set; }
         public required string Haslo { get; set; }
-    }
 
-    public class LoginResultDto
-    {
-        public string? Token { get; set; }
     }
 }
