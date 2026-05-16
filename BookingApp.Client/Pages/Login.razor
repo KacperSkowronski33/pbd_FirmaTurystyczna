@@ -39,17 +39,24 @@
 
         if (response.IsSuccessStatusCode)
         {
-            var result = await response.Content.ReadFromJsonAsync<LoginResponseWrapper>();
-            if (result != null && result.Sukces)
+            var result = await response.Content.ReadFromJsonAsync<LoginResultDto>();
+            if (result != null && result.Success)
             {
-                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Dane?.Token);
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
                 NavManager.NavigateTo("/", forceLoad: true);
             }
         }
         else
         {
-            var result = await response.Content.ReadFromJsonAsync<LoginResponseWrapper>();
-            komunikat = result?.Wiadomosc ?? "Niepoprawny login lub hasło.";
+            try
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResultDto>();
+                komunikat = result?.Wiadomosc ?? "Niepoprawny login lub hasło.";
+            }
+            catch
+            {
+                komunikat = "Błąd logowania.";
+            }
         }
     }
 
@@ -59,15 +66,10 @@
         public string Haslo { get; set; } = "";
     }
 
-    public class LoginResponseWrapper
-    {
-        public bool Sukces { get; set; }
-        public string Wiadomosc { get; set; } = "";
-        public LoginResultDto? Dane { get; set; }
-    }
-
     public class LoginResultDto
     {
+        public bool Success { get; set; }
+        public string Wiadomosc { get; set; } = "";
         public string Token { get; set; } = "";
     }
 }
