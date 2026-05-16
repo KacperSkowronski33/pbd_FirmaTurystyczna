@@ -13,7 +13,7 @@ else if (!klienci.Any())
 }
 else
 {
-    <table class="table">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Id</th>
@@ -41,18 +41,14 @@ else
 }
 
 @code {
-    private List<KlientDto> klienci;
+    private List<KlientDto>? klienci;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponseWrapper>("api/klienci");
-
-            if (response != null && response.Sukces)
-            {
-                klienci = response.Dane;
-            }
+            // Pobieramy bezpośrednio listę z backendu, bez żadnych wrapperów
+            klienci = await Http.GetFromJsonAsync<List<KlientDto>>("api/klienci");
         }
         catch (Exception ex)
         {
@@ -62,24 +58,25 @@ else
 
     private async Task UsunKlienta(int id)
     {
-        await Http.DeleteAsync($"api/klienci/{id}");
-        if (klienci != null)
+        try
         {
-            klienci.RemoveAll(k => k.Id == id);
+            var response = await Http.DeleteAsync($"api/klienci/{id}");
+            if (response.IsSuccessStatusCode && klienci != null)
+            {
+                klienci.RemoveAll(k => k.Id == id);
+            }
         }
-    }
-    public class ApiResponseWrapper
-    {
-        public bool Sukces { get; set; }
-        public string Wiadomosc { get; set; }
-        public List<KlientDto> Dane { get; set; }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd usuwania: {ex.Message}");
+        }
     }
 
     public class KlientDto
     {
         public int Id { get; set; }
-        public string Email { get; set; }
-        public string Imie { get; set; }
-        public string Nazwisko { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Imie { get; set; } = string.Empty;
+        public string Nazwisko { get; set; } = string.Empty;
     }
 }
