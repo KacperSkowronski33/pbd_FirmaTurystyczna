@@ -1,4 +1,4 @@
-﻿@page "/klienci"
+﻿@page "/admin/klienci"
 @inject HttpClient Http
 
 <h3>Klienci</h3>
@@ -20,6 +20,7 @@ else
                 <th>Email</th>
                 <th>Imię</th>
                 <th>Nazwisko</th>
+                <th>Akcje</th>
             </tr>
         </thead>
         <tbody>
@@ -30,6 +31,9 @@ else
                     <td>@k.Email</td>
                     <td>@k.Imie</td>
                     <td>@k.Nazwisko</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => UsunKlienta(k.Id)">Usuń</button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -41,7 +45,34 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        klienci = await Http.GetFromJsonAsync<List<KlientDto>>("api/klienci");
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponseWrapper>("api/klienci");
+
+            if (response != null && response.Sukces)
+            {
+                klienci = response.Dane;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania: {ex.Message}");
+        }
+    }
+
+    private async Task UsunKlienta(int id)
+    {
+        await Http.DeleteAsync($"api/klienci/{id}");
+        if (klienci != null)
+        {
+            klienci.RemoveAll(k => k.Id == id);
+        }
+    }
+    public class ApiResponseWrapper
+    {
+        public bool Sukces { get; set; }
+        public string Wiadomosc { get; set; }
+        public List<KlientDto> Dane { get; set; }
     }
 
     public class KlientDto

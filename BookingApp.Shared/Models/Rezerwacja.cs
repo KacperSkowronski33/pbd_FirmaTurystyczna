@@ -11,7 +11,7 @@ namespace BookingApp.Shared.Models
         public int Id { get; set; } 
         public int KlientId { get; set; }
         public int TerminCenaId { get; set; }
-        public int PracownikId { get; set; }
+        public int? PracownikId { get; set; }
         public int LiczbaOsob {  get; set; }
         public decimal KwotaCalkowita { get; set; }
         public DateTime DataUtworzenia {  get; set; }

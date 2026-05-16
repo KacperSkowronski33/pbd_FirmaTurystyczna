@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookingApp.Shared.DTOs.RezerwacjaDto
 {
@@ -17,5 +13,8 @@ namespace BookingApp.Shared.DTOs.RezerwacjaDto
         // Zamiast wysyłać całe obiekty, wysyłamy konkretne dane:
         public int HotelId { get; set; }
         public string NazwaHotelu { get; set; } = string.Empty;
+        public int LiczbaOsob { get; set; }
+        public decimal KwotaCalkowita { get; set; }
+        public DateTime DataUtworzenia { get; set; }
     }
 }
