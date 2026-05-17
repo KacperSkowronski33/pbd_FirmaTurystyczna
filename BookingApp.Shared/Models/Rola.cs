@@ -9,6 +9,7 @@ namespace BookingApp.Shared.Models
     public enum TypRoli
     {
         Brak,
+        Klient,
         Pracownik,
         Administrator
     }

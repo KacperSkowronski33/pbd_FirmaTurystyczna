@@ -1,4 +1,5 @@
 ﻿using BookingApp.Api.Data;
+using BookingApp.Shared.ApiResponse;
 using BookingApp.Shared.DTOs.HotelDto;
 using BookingApp.Shared.DTOs.KlientDto;
 using BookingApp.Shared.DTOs.RezerwacjaDto;
@@ -21,7 +22,7 @@ namespace BookingApp.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ReadKlientDto>>> GetKlient()
+        public async Task<ActionResult<ApiResponse<IEnumerable<ReadKlientDto>>>> GetKlient()
         {
             var klienci = await _context.Klienci
                 .AsNoTracking()
@@ -33,10 +34,10 @@ namespace BookingApp.Api.Controllers
                     Email = k.Email,
                     AdresKlienta = k.AdresKlienta,
                 }).ToListAsync();
-            return Ok(klienci);
+            return Ok(ApiResponse<IEnumerable<ReadKlientDto>>.Ok(klienci));
         }
         [HttpPost]
-        public async Task<ActionResult<Klient>> PostKlient(CreateKlientDto k)
+        public async Task<ActionResult<ApiResponse<Klient>>> PostKlient(CreateKlientDto k)
         {
             var nowy = new Klient
             {
@@ -48,7 +49,7 @@ namespace BookingApp.Api.Controllers
             };
             _context.Klienci.Add(nowy);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetKlient), new { id = nowy.Id }, nowy);
+            return CreatedAtAction(nameof(GetKlient), new { id = nowy.Id }, ApiResponse<Klient>.Ok(nowy, "Klient został dodany"));
         }
         [HttpPut("{id}")]
         public async Task<IActionResult> PutKlient(int id, UpdateKlientDto k)
@@ -56,7 +57,7 @@ namespace BookingApp.Api.Controllers
             var klienciBaza = await _context.Klienci.FindAsync(id);
             if (klienciBaza == null)
             {
-                return NotFound($"Rezerwacja o id {id} nie istnieje w bazie");
+                return NotFound(ApiResponse.Error($"Klient o id {id} nie istnieje w bazie"));
             }
             klienciBaza.Imie = k.Imie;
             klienciBaza.Nazwisko = k.Nazwisko;
@@ -64,7 +65,7 @@ namespace BookingApp.Api.Controllers
             klienciBaza.Haslo = k.Haslo;
             klienciBaza.AdresKlienta = k.AdresKlienta;
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(ApiResponse.Ok("Klient został zaktualizowany"));
         }
 
 
@@ -74,11 +75,11 @@ namespace BookingApp.Api.Controllers
             var klient = await _context.Klienci.FindAsync(id);
             if (klient == null)
             {
-                return NotFound($"klient o id = {id} nie istnieje w bazie");
+                return NotFound(ApiResponse.Error($"Klient o id {id} nie istnieje w bazie"));
             }
             _context.Klienci.Remove(klient);
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(ApiResponse.Ok("Klient został usunięty"));
         }
 
     }
