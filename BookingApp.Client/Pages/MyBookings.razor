@@ -45,23 +45,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Wyciągamy token z localStorage
         var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
 
         if (string.IsNullOrEmpty(token))
         {
-            // Jeśli ktoś wejdzie z palca bez logowania, odrzucamy go na stronę logowania
             NavManager.NavigateTo("/login");
             return;
         }
 
-        // 2. Tworzymy specjalne zapytanie z przypiętym tokenem ("Bearer")
         var request = new HttpRequestMessage(HttpMethod.Get, "api/Rezerwacje/moje");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         try
         {
-            // 3. Strzelamy do zabezpieczonego endpointu
             var response = await Http.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {

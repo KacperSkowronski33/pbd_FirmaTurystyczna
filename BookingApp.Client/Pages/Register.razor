@@ -1,4 +1,6 @@
 ﻿@page "/register"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.Auth
 @inject HttpClient Http
 @inject NavigationManager NavManager
 
@@ -37,33 +39,36 @@
 </div>
 
 @code {
-    private RegisterModel model = new();
+    private RegisterDto model = new() { Imie = "", Nazwisko = "", Email = "", Haslo = "" };
     private string komunikat = "";
     private bool czySukces = false;
 
     private async Task Zarejestruj()
-{
-        var response = await Http.PostAsJsonAsync("api/klienci", model);
+    {
+        komunikat = "";
+        
+        var response = await Http.PostAsJsonAsync("api/auth/register", model);
 
         if (response.IsSuccessStatusCode)
         {
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
             czySukces = true;
-            komunikat = "Konto zostało pomyślnie utworzone!";
+            komunikat = result?.Wiadomosc ?? "Konto zostało pomyślnie utworzone!";
             await Task.Delay(1500);
             NavManager.NavigateTo("/login");
         }
         else
         {
             czySukces = false;
-            komunikat = "Wystąpił błąd rejestracji. Upewnij się, że dane są poprawne.";
+            try
+            {
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                komunikat = result?.Wiadomosc ?? "Wystąpił błąd rejestracji.";
+            }
+            catch
+            {
+                komunikat = "Wystąpił błąd rejestracji. Upewnij się, że dane są poprawne.";
+            }
         }
-    }
-
-    public class RegisterModel
-    {
-        public string Imie { get; set; } = "";
-        public string Nazwisko { get; set; } = "";
-        public string Email { get; set; } = "";
-        public string Haslo { get; set; } = "";
     }
 }

@@ -24,7 +24,7 @@ namespace BookingApp.Api.Data
                     Imie = "Główny",
                     Nazwisko = "Admin",
                     Email = "admin",
-                    Haslo = BCrypt.Net.BCrypt.HashPassword("123"),
+                    Haslo = "123",
                     RolaId = admin.Id,
 
                 });

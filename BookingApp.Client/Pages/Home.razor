@@ -1,5 +1,8 @@
 ﻿@page "/"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.OfertaDto
 @inject NavigationManager NavManager
+@inject HttpClient Http
 
 @* Sekcja Header (Niebieskie tło pod wyszukiwarką) *@
 <div class="hero-section">
@@ -13,21 +16,22 @@
 <div class="search-container shadow-lg">
     <div class="search-input-group flex-grow-1">
         <span class="me-2">🛫</span>
-        <input type="text" id="miejsce_z" placeholder="Skąd?" class="w-100" />
+        <input type="text" id="miejsce_z" placeholder="Skąd?" class="w-100" @bind="_skad" />
     </div>
     <div class="search-input-group flex-grow-1">
-        <span class="me-2">🛬</span> 
-        <input type="text" id="miejsce_do" placeholder="Dokąd?" class="w-100" />
+        <span class="me-2">🛬</span>
+        <input type="text" id="miejsce_do" placeholder="Dokąd?" class="w-100" @bind="_dokad" />
     </div>
     <div class="search-input-group">
         <span class="me-2">📅</span>
-        <input type="date" id="data_od" title="Data zameldowania" />
+        <input type="date" id="data_od" title="Data zameldowania" @bind="_dataOd" />
         <span class="mx-2">-</span>
-        <input type="date" id="data_do" title="Data wymeldowania" />
+        <input type="date" id="data_do" title="Data wymeldowania" @bind="_dataDo" />
     </div>
     <div class="search-input-group">
         <span class="me-2">👤</span>
-        <input type="text" id="osoby" placeholder="2 dorosłych · 1 pokój" />
+        <input type="number" id="osoby" min="1" max="10" @bind="_liczbaOsob" style="width: 70px; border:none; outline:none;" />
+        <span class="text-muted small ms-1">osób</span>
     </div>
     <button class="search-btn" @onclick="PrzejdzDoWyszukiwania">Szukaj</button>
 </div>
@@ -66,21 +70,29 @@
         {
             @foreach (var offer in Offers)
             {
+                var minimalnaCena = offer.TerminyCeny != null && offer.TerminyCeny.Any()
+                                    ? offer.TerminyCeny.Min(t => t.CenaPodstawowa)
+                                    : 0;
+                var zdjecieUrl = offer.Hotel?.ZdjeciaHotelu?.FirstOrDefault()?.UrlZdjecia ?? "images/logo.jpg";
+                
+                var nazwaHotelu = offer.Hotel?.NazwaHotelu ?? "Nieznany hotel";
+                var lokalizacja = offer.Hotel?.Miejscowosc?.Nazwa ?? "Brak danych";
+                var gwiazdki = offer.Hotel?.LiczbaGwiazdek ?? 0; 
+
                 <div class="offer-card shadow-sm">
-                    <div class="offer-photo" style="background-image: url('@offer.ImageUrl')">
-                        @if (offer.Discount)
-                        {
-                            <span class="badge bg-danger m-2">Okazja</span>
-                        }
+                    @* Wrzucamy znalezione zdjęcie *@
+                    <div class="offer-photo" style="background-image: url('@zdjecieUrl')">
+                        @* <span class="badge bg-danger m-2">Okazja</span> *@
                     </div>
                     <div class="offer-content">
-                        <h5 class="fw-bold mb-1">@offer.Title</h5>
-                        <p class="text-muted small mb-3"><i class="bi bi-geo-alt"></i> @offer.Location</p>
+                        <h5 class="fw-bold mb-1">@nazwaHotelu</h5>
+                        <p class="text-muted small mb-3"><i class="bi bi-geo-alt"></i> @lokalizacja</p>
                         <div class="d-flex justify-content-between align-items-center mt-auto">
-                            <div class="rating bg-primary text-white p-1 px-2 rounded small">@offer.Rating</div>
+                            <div class="rating bg-primary text-white p-1 px-2 rounded small">@gwiazdki <i class="bi bi-star-fill"></i></div>
                             <div class="text-end">
                                 <span class="small text-muted d-block">od</span>
-                                <span class="fw-bold fs-5 text-dark">@offer.Price zł</span>
+                                @* Wyświetlamy najniższą cenę *@
+                                <span class="fw-bold fs-5 text-dark">@minimalnaCena.ToString("C0")</span>
                             </div>
                         </div>
                     </div>
@@ -90,43 +102,37 @@
     </div>
 </div>
 
-@code {
-    // Model danych
-    public class OfferViewModel
-    {
-        public string Title { get; set; } = "";
-        public string Location { get; set; } = "";
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; } = "";
-        public string Rating { get; set; } = "8.5";
-        public bool Discount { get; set; } = false;
-    }
 
-    private List<OfferViewModel>? Offers;
+@code {
+    private List<ReadOfertaDto>? Offers;
+
+    private string _skad = "";
+    private string _dokad = "";
+    private DateTime _dataOd;
+    private DateTime _dataDo;
+    private int _liczbaOsob = 2;
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(1000);
-
-        Offers = new List<OfferViewModel>();
-
-        // Przykładowe dane:
-        
-        Offers = new List<OfferViewModel> {
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" },
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" },
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" },
-            new OfferViewModel { Title = "Grand Hotel Lux", Location = "Gdańsk", Price = 450, ImageUrl = "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400" }
-        };
-        
-        
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<ReadOfertaDto>>>("api/oferty");
+        if (response != null && response.Sukces)
+        {
+            Offers = response.Dane;
+        }
     }
 
     private void PrzejdzDoWyszukiwania()
     {
-        //Przenosi użytkownika na podstronę /search
-        NavManager.NavigateTo("search");
+        // NOWE: Przekazujemy wszystkie parametry w QueryStringu do strony /search
+        var url = $"search?skad={Uri.EscapeDataString(_skad)}" +
+                  $"&dokad={Uri.EscapeDataString(_dokad)}" +
+                  $"&dataOd={_dataOd}" +
+                  $"&dataDo={_dataDo}" +
+                  $"&liczbaOsob={_liczbaOsob}";
+                  
+        NavManager.NavigateTo(url);
     }
+
 }
 
 <style>

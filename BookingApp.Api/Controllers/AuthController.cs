@@ -59,7 +59,7 @@ namespace BookingApp.Api.Controllers
 
                 if (klient == null || klient.Haslo != loginDto.Haslo)
                 {
-                    return Unauthorized(new LoginResultDto { Success = false, Wiadomosc = "Niepoprawny login lub hasło" });
+                    return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
                 }
                 rola = TypRoli.Klient;
                 userMail = klient.Email;
@@ -109,7 +109,8 @@ namespace BookingApp.Api.Controllers
                 Imie = register.Imie,
                 Nazwisko = register.Nazwisko,
                 Email = register.Email,
-                Haslo = BCrypt.Net.BCrypt.HashPassword(register.Haslo)
+                //Haslo = BCrypt.Net.BCrypt.HashPassword(register.Haslo)
+                Haslo = register.Haslo,
 
             };
             _context.Klienci.Add(noweKonto);

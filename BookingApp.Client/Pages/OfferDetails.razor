@@ -1,8 +1,12 @@
 ﻿@page "/offer-details/{Id:int}"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.OfertaDto
+@using BookingApp.Shared.Models
 @inject NavigationManager NavManager
+@inject HttpClient Http
 
 <div class="container mt-4">
-    @if (CurrentOffer == null)
+    @if (Offer == null)
     {
         <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
@@ -11,6 +15,14 @@
     }
     else
     {
+        var nazwaHotelu = Offer.Hotel?.NazwaHotelu ?? "Nieznany obiekt";
+        var lokalizacja = $"{Offer.Hotel?.Miejscowosc?.Nazwa}, {Offer.Hotel?.Miejscowosc?.KrajId}";
+        var gwiazdki = Offer.Hotel?.LiczbaGwiazdek ?? 0;
+        
+        var wszystkieZdjecia = Offer.Hotel?.ZdjeciaHotelu?.Select(z => z.UrlZdjecia).ToList() ?? new List<string>();
+        var glowneZdjecie = wszystkieZdjecia.FirstOrDefault() ?? "images/logo.jpg";
+        var galeria = wszystkieZdjecia.Skip(1).ToList();
+
         @* Nagłówek *@
         <div class="row mb-4">
             <div class="col-12">
@@ -18,71 +30,120 @@
                     <ol class="breadcrumb small">
                         <li class="breadcrumb-item"><a href="/">Strona główna</a></li>
                         <li class="breadcrumb-item"><a href="/search">Wyniki wyszukiwania</a></li>
-                        <li class="breadcrumb-item active">@CurrentOffer.Title</li>
+                        <li class="breadcrumb-item active">@nazwaHotelu</li>
                     </ol>
                 </nav>
                 <div class="d-flex justify-content-between align-items-end mb-3">
                     <div>
-                        <h2 class="fw-bold mb-1">@CurrentOffer.Title</h2>
-                        <p class="text-muted mb-0"><i class="bi bi-geo-alt-fill text-primary"></i> @CurrentOffer.Location</p>
+                        <h2 class="fw-bold mb-1">@nazwaHotelu</h2>
+                        <p class="text-muted mb-0"><i class="bi bi-geo-alt-fill text-primary"></i> @lokalizacja</p>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-primary fs-5">@CurrentOffer.Rating / 10</span>
-                        <p class="small text-muted mb-0">(@CurrentOffer.ReviewCount opinii)</p>
+                        <span class="badge bg-primary fs-5">
+                            @gwiazdki <i class="bi bi-star-fill"></i>
+                        </span>
+                        <p class="small text-muted mb-0">(Kategoria hotelu)</p>
                     </div>
                 </div>
             </div>
 
             @* Galeria *@
             <div class="col-lg-8">
-                <div class="main-photo mb-2" style="background-image: url('@CurrentOffer.ImageUrl')"></div>
+                <div class="main-photo mb-2" style="background-image: url('@glowneZdjecie'); height: 400px; background-size: cover; border-radius: 8px;"></div>
                 <div class="row g-2">
-                    @foreach (var img in CurrentOffer.GalleryUrls.Take(4))
+                    @foreach (var img in galeria.Take(4))
                     {
                         <div class="col-3">
-                            <div class="sub-photo" style="background-image: url('@img')"></div>
+                            <div class="sub-photo" style="background-image: url('@img'); height: 90px; background-size: cover; border-radius: 4px;"></div>
                         </div>
                     }
                 </div>
             </div>
 
-            @* Panel Rezerwacji (Sticky) *@
+            @* PANEL REZERWACJI *@
             <div class="col-lg-4">
                 <div class="booking-widget p-4 shadow-sm border rounded bg-white">
                     <h5 class="fw-bold mb-3">Twoja rezerwacja</h5>
-                    <div class="mb-3 p-2 bg-light rounded">
-                        <div class="small fw-bold">Wybrany termin:</div>
-                        <div class="small">Dostępne od zaraz</div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Cena za osobę:</span>
-                            <span class="fw-bold">@CurrentOffer.Price zł</span>
+                    
+                    @* wybór liczby osób *@
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Liczba uczestników:</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">👤</span>
+                            <input type="number" class="form-control" min="1" max="10" @bind="Osoby" />
                         </div>
-                        <hr />
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold fs-5">Suma:</span>
-                            <span class="fw-bold fs-4 text-primary">@(CurrentOffer.Price * 2) zł</span>
-                        </div>
-                        <p class="text-muted small mt-2">Cena za 2 osoby dorosłe</p>
                     </div>
-                    <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow" @onclick="HandleBooking">REZERWUJ TERAZ</button>
+
+                    @* wybór terminu prosto z bazy *@
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Wybierz termin pobytu:</label>
+                        @if (Offer.TerminyCeny != null && Offer.TerminyCeny.Any())
+                        {
+                            <select class="form-select form-select-sm" @bind="wybraneTerminCenaId">
+                                @foreach (var t in Offer.TerminyCeny.OrderBy(x => x.DataOd))
+                                {
+                                    <option value="@t.Id">
+                                        @t.DataOd.ToString("dd.MM.yyyy") - @t.DataDo.ToString("dd.MM.yyyy") (@t.CenaPodstawowa.ToString("C0") / os.)
+                                    </option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <div class="text-danger small py-1"><i class="bi bi-exclamation-circle"></i> Brak dostępnych terminów.</div>
+                        }
+                    </div>
+
+                    @* podsumowanie kosztów *@
+                    @if (wybranyTermin != null)
+                    {
+                        <div class="mb-4 p-3 bg-light rounded border">
+                            <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
+                                <span>Cena za osobę:</span>
+                                <span class="fw-bold text-dark">@wybranyTermin.CenaPodstawowa.ToString("C0")</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
+                                <span>Liczba osób:</span>
+                                <span class="fw-bold text-dark">@Osoby</span>
+                            </div>
+                            <hr class="my-2" />
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold fs-5">Suma:</span>
+                                <span class="fw-bold fs-4 text-primary">@((wybranyTermin.CenaPodstawowa * Osoby).ToString("C0"))</span>
+                            </div>
+                            <p class="text-muted text-center small mt-2 mb-0" style="font-size: 0.75rem;">
+                                Kalkulacja pobrana bezpośrednio z bazy danych.
+                            </p>
+                        </div>
+                    }
+
+                    @* Przycisk przesyła do checkoutu ID konkretnego TERMINU *@
+                    <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow"
+                            @onclick="HandleBooking"
+                            disabled="@(wybraneTerminCenaId == null || Osoby < 1)">
+                        REZERWUJ TERAZ
+                    </button>
+                    
+                    @if (!string.IsNullOrEmpty(komunikat))
+                    {
+                        <div class="alert alert-warning mt-3 small text-center p-2">@komunikat</div>
+                    }
                 </div>
             </div>
         </div>
 
-        @* Sekcja Zakładek *@
+        @* SEKCJA ZAKŁADEK  *@
         <div class="row mt-4">
             <div class="col-lg-8">
                 <ul class="nav nav-tabs custom-tabs mb-4">
                     <li class="nav-item">
-                        <button class="nav-link @(ActiveTab == "hotel" ? "active" : "")" @onclick='() => ActiveTab = "hotel"'>O hotelu</button>
+                        <button class="nav-link @(ActiveTab == "hotel" ? "active" : "")" @onclick='() => ActiveTab = "hotel"'>O ofercie</button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link @(ActiveTab == "rooms" ? "active" : "")" @onclick='() => ActiveTab = "rooms"'>Pokoje</button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link @(ActiveTab == "reviews" ? "active" : "")" @onclick='() => ActiveTab = "reviews"'>Opinie</button>
+                        <button class="nav-link @(ActiveTab == "reviews" ? "active" : "")" @onclick='() => ActiveTab = "reviews"'>Informacje dodatkowe</button>
                     </li>
                 </ul>
 
@@ -90,27 +151,40 @@
                     @if (ActiveTab == "hotel")
                     {
                         <div class="animate-fade-in">
-                            <h5 class="fw-bold">Opis obiektu</h5>
-                            <p>@CurrentOffer.Description</p>
-                            <h6 class="fw-bold mt-3">Udogodnienia:</h6>
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach (var tag in CurrentOffer.Tags)
-                                {
-                                    <span class="badge bg-light text-dark border fw-normal">@tag</span>
-                                }
+                            <h5 class="fw-bold">Szczegóły oferty</h5>
+                            <p>
+                                <strong>Typ wyżywienia:</strong>
+                                @(Offer.TypWyzywienia?.NazwaWyzywienia ?? "Brak szczegółowych danych")
+                            </p>
+
+                            @if (Offer.Hotel != null)
+                            {
+                                <h5 class="fw-bold mt-4">Informacje o obiekcie</h5>
+                                <p><i class="bi bi-building me-2"></i>Nazwa: @Offer.Hotel.NazwaHotelu</p>
+                                <p><i class="bi bi-star me-2"></i>Standard: @Offer.Hotel.LiczbaGwiazdek gwiazdek</p>
+                            }
+                        </div>
+                    }
+                    else if (ActiveTab == "rooms")
+                    {
+                        <div class="animate-fade-in">
+                            <h5 class="fw-bold mb-3">Struktura pokoi w hotelu</h5>
+                            <p class="text-muted small">
+                                Obiekt posiada dedykowane strefy mieszkalne dopasowane do wybranego standardu.
+                                Szczegółowy podział na pokoje jedno- i dwuosobowe oraz dobór łóżek następuje automatycznie w kroku uzupełniania danych podróżnych.
+                            </p>
+                            <span class="badge border text-muted p-2"><i class="bi bi-info-circle me-1"></i> Oferta powiązana bezpośrednio z bazą rodzajów pokojów obiektu.</span>
+                        </div>
+                    }
+                    else if (ActiveTab == "reviews")
+                    {
+                        <div class="animate-fade-in">
+                            <h5 class="fw-bold mb-3">Ważne informacje dla podróżnych</h5>
+                            <div class="p-3 bg-light rounded border small text-muted">
+                                <p class="mb-2">⏱️ <strong>Doba hotelowa:</strong> Zameldowanie od godziny 14:00, wymeldowanie do godziny 10:00 rano.</p>
+                                <p class="mb-2">🧳 <strong>Bagaż:</strong> Możliwość bezpłatnego pozostawienia bagażu w recepcji hotelu przed zameldowaniem.</p>
+                                <p class="mb-0">💳 <strong>Opłata klimatyczna:</strong> Może być wymagana dodatkowa opłata na miejscu (zależna od przepisów lokalnych danej miejscowości).</p>
                             </div>
-                        </div>
-                    }
-                    @if (ActiveTab == "rooms")
-                    {
-                        <div class="animate-fade-in">
-                            <p>Szczegółowe informacje o dostępnych pokojach w obiekcie @CurrentOffer.Title zostaną pobrane z bazy.</p>
-                        </div>
-                    }
-                    @if (ActiveTab == "reviews")
-                    {
-                        <div class="animate-fade-in">
-                            <p>Średnia ocena: @CurrentOffer.Rating / 10 na podstawie @CurrentOffer.ReviewCount opinii.</p>
                         </div>
                     }
                 </div>
@@ -121,51 +195,39 @@
 
 @code {
     [Parameter] public int Id { get; set; }
+    [SupplyParameterFromQuery(Name = "osoby")] public int Osoby { get; set; } = 2;
+
+    private ReadOfertaDto? Offer;
+    private string komunikat = "";
     private string ActiveTab = "hotel";
-    private OfferDetailModel? CurrentOffer;
-
-
-    private void HandleBooking()
-    {
-        // Nawigacja do checkoutu
-        NavManager.NavigateTo($"/checkout/{Id}");
-    }
-
-    public class OfferDetailModel
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = "";
-        public string Location { get; set; } = "";
-        public string Description { get; set; } = "";
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; } = "";
-        public List<string> GalleryUrls { get; set; } = new();
-        public string Rating { get; set; } = "";
-        public int ReviewCount { get; set; }
-        public List<string> Tags { get; set; } = new();
-    }
+    
+    private int? wybraneTerminCenaId;
+    private TerminCena? wybranyTermin => Offer?.TerminyCeny?.FirstOrDefault(t => t.Id == wybraneTerminCenaId);
 
     protected override async Task OnInitializedAsync()
     {
-        //CurrentOffer = await Http.GetFromJsonAsync<OfferDetailModel>($"api/offers/{Id}");
-        await Task.Delay(500);
-
-        // Przykładowa oferta
-        if (Id == 101)
+        var response = await Http.GetFromJsonAsync<ApiResponse<ReadOfertaDto>>($"api/oferty/{Id}");
+        if (response != null && response.Sukces)
         {
-            CurrentOffer = new OfferDetailModel
+            Offer = response.Dane;
+            
+            var domyslnyTermin = Offer?.TerminyCeny?.OrderBy(t => t.CenaPodstawowa).FirstOrDefault();
+            if (domyslnyTermin != null)
             {
-                Id = 101,
-                Title = "Hotel Testowy (Szczegóły)",
-                Location = "Testowo, Polska",
-                Description = "Pełny opis wczytany dynamicznie dla ID 101.",
-                Price = 1500,
-                ImageUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
-                Rating = "9.5",
-                ReviewCount = 42,
-                GalleryUrls = new List<string> { "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=200" },
-                //Tags = new List<string> { "Basen", "Wi-Fi", "Parking" }
-            };
+                wybraneTerminCenaId = domyslnyTermin.Id;
+            }
+        }
+        else
+        {
+            komunikat = "Nie znaleziono takiej oferty.";
+        }
+    }
+
+    private void HandleBooking()
+    {
+        if (wybraneTerminCenaId.HasValue)
+        {
+            NavManager.NavigateTo($"/checkout/{wybraneTerminCenaId.Value}?offerId={Offer.Id}&liczbaOsob={Osoby}");
         }
     }
 }

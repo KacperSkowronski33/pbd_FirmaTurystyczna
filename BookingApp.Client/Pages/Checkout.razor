@@ -1,5 +1,9 @@
-﻿@page "/checkout/{OfferId:int}"
+﻿@page "/checkout/{TerminCenaId:int}"
 @using BookingApp.Shared.DTOs.RezerwacjaDto
+@using BookingApp.Shared.DTOs.OfertaDto
+@using BookingApp.Shared.DTOs.KlientDto
+@using BookingApp.Shared.Models
+@using BookingApp.Shared.ApiResponse
 @using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager NavManager
@@ -30,7 +34,7 @@
     @* KOMUNIKAT BŁĘDU *@
     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="alert alert-danger mb-4 text-center">@errorMessage</div>
+        <div class="alert alert-danger mb-4 text-center shadow-sm">@errorMessage</div>
     }
 
     <div class="row">
@@ -40,22 +44,20 @@
             {
                 <div class="card shadow-sm border-0 p-4 animate-slide">
                     <h4 class="fw-bold mb-4">Uczestnicy wyjazdu</h4>
-                    @for (int i = 1; i <= 2; i++)
+                    
+                    @for (int i = 0; i < Podrozni.Count; i++)
                     {
-                        <div class="mb-4 p-3 border rounded">
-                            <h6 class="fw-bold text-primary mb-3">Podróżny #@i</h6>
+                        var index = i;
+                        <div class="mb-4 p-3 border rounded bg-white">
+                            <h6 class="fw-bold text-primary mb-3">Podróżny #@(index + 1) @(index == 0 ? "(Główny rezerwujący)" : "")</h6>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label small">Imię</label>
-                                    <input type="text" class="form-control" placeholder="Jan">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Jan" @bind="Podrozni[index].Imie">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small">Nazwisko</label>
-                                    <input type="text" class="form-control" placeholder="Kowalski">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small">Data urodzenia</label>
-                                    <input type="date" class="form-control">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Kowalski" @bind="Podrozni[index].Nazwisko">
                                 </div>
                             </div>
                         </div>
@@ -67,27 +69,27 @@
                 <div class="card shadow-sm border-0 p-4 animate-slide">
                     <h4 class="fw-bold mb-4">Dodatki do podróży</h4>
                     <div class="list-group">
-                        <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <label class="list-group-item d-flex justify-content-between align-items-center p-3 cursor-pointer">
                             <div>
-                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Ubezpieczenie", 150, (bool)e.Value)'>
+                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Ubezpieczenie Premium", 150 * LiczbaOsob, (bool)e.Value!)'>
                                 <strong>Ubezpieczenie Premium</strong>
-                                <div class="small text-muted">Pełna ochrona kosztów leczenia i rezygnacji.</div>
+                                <div class="small text-muted">Pełna ochrona kosztów leczenia dla wszystkich uczestników.</div>
                             </div>
-                            <span class="badge bg-light text-dark border">+150 zł / os.</span>
+                            <span class="badge bg-light text-dark border">+@(150 * LiczbaOsob) zł (całość)</span>
                         </label>
-                        <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <label class="list-group-item d-flex justify-content-between align-items-center p-3 cursor-pointer">
                             <div>
-                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Transfer", 80, (bool)e.Value)'>
+                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Prywatny transfer z lotniska", 80, (bool)e.Value!)'>
                                 <strong>Prywatny transfer z lotniska</strong>
-                                <div class="small text-muted">Kierowca będzie czekał w hali przylotów.</div>
+                                <div class="small text-muted">Dedykowany kierowca będzie czekał w hali przylotów.</div>
                             </div>
                             <span class="badge bg-light text-dark border">+80 zł</span>
                         </label>
-                        <label class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <label class="list-group-item d-flex justify-content-between align-items-center p-3 cursor-pointer">
                             <div>
-                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Bagaż", 220, (bool)e.Value)'>
+                                <input class="form-check-input me-3" type="checkbox" @onchange='(e) => ToggleAddon("Dodatkowy bagaż rejestrowany", 220, (bool)e.Value!)'>
                                 <strong>Dodatkowy bagaż rejestrowany (20kg)</strong>
-                                <div class="small text-muted">Dodatkowa walizka dla każdego pasażera.</div>
+                                <div class="small text-muted">Dodatkowa duża walizka do luku bagażowego.</div>
                             </div>
                             <span class="badge bg-light text-dark border">+220 zł</span>
                         </label>
@@ -100,18 +102,27 @@
                     <h4 class="fw-bold mb-4">Podsumowanie i płatność</h4>
                     <div class="alert alert-warning border-0 small">
                         <i class="bi bi-info-circle-fill me-2"></i>
-                        Sprawdź poprawność danych przed dokonaniem płatności. Zmiana nazwiska po rezerwacji może wiązać się z dodatkową opłatą.
+                        Sprawdź poprawność danych pasażerów przed dokonaniem płatności.
                     </div>
+                    
+                    <div class="mb-4 bg-light p-3 rounded border small">
+                        <h6 class="fw-bold text-dark mb-2">Zweryfikuj uczestników wyjazdu:</h6>
+                        @foreach (var p in Podrozni)
+                        {
+                            <div class="mb-1">👤 <strong>@p.Imie @p.Nazwisko</strong></div>
+                        }
+                    </div>
+
                     <div class="mb-4">
                         <h6 class="fw-bold">Metoda płatności</h6>
                         <div class="d-flex gap-3">
                             <div class="payment-card active p-3 border rounded text-center cursor-pointer">
                                 <i class="bi bi-credit-card fs-3"></i>
-                                <div class="small">Karta / BLIK</div>
+                                <div class="small fw-bold">Karta / BLIK</div>
                             </div>
                             <div class="payment-card p-3 border rounded text-center cursor-pointer opacity-50">
                                 <i class="bi bi-bank fs-3"></i>
-                                <div class="small">Przelew</div>
+                                <div class="small">Przelew bankowy</div>
                             </div>
                         </div>
                     </div>
@@ -123,7 +134,7 @@
                 <button class="btn btn-outline-secondary px-4 rounded-pill" @onclick="PrevStep" disabled="@(CurrentStep == 1)">Wstecz</button>
                 @if (CurrentStep < 3)
                 {
-                    <button class="btn btn-primary px-5 rounded-pill shadow" @onclick="NextStep">Dalej</button>
+                    <button class="btn btn-primary px-5 rounded-pill shadow" @onclick="NextStep" disabled="@(CurrentStep == 1 && !WalidujDanePodroznych())">Dalej</button>
                 }
                 else
                 {
@@ -132,28 +143,38 @@
             </div>
         </div>
 
-        @* PRAWA KOLUMNA: PODSUMOWANIE KWOT *@
+        @* PRAWA KOLUMNA: PODSUMOWANIE KWOT POBRANYCH Z BAZY *@
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0 sticky-top" style="top: 100px;">
+            <div class="card shadow-sm border-0 sticky-top animate-slide" style="top: 100px;">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold mb-3">Twoje zestawienie</h5>
-                    <div class="d-flex justify-content-between small mb-2">
-                        <span>Cena bazowa (2 osoby)</span>
-                        <span>@BasePrice zł</span>
-                    </div>
-                    @foreach (var addon in SelectedAddons)
+                    @if (Offer != null && wybranyTermin != null)
                     {
-                        <div class="d-flex justify-content-between small mb-2 text-success">
-                            <span>+ @addon.Key</span>
-                            <span>@addon.Value zł</span>
+                        <h5 class="fw-bold mb-1">@Offer.Hotel?.NazwaHotelu</h5>
+                        <p class="text-muted small mb-3"><i class="bi bi-calendar-range me-1"></i> @wybranyTermin.DataOd.ToString("dd.MM.yyyy") - @wybranyTermin.DataDo.ToString("dd.MM.yyyy")</p>
+                        <hr />
+                        
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span>Cena podstawowa (@LiczbaOsob os.)</span>
+                            <span>@BasePrice zł</span>
                         </div>
+                        @foreach (var addon in SelectedAddons)
+                        {
+                            <div class="d-flex justify-content-between small mb-2 text-success">
+                                <span>+ @addon.Key</span>
+                                <span>@addon.Value zł</span>
+                            </div>
+                        }
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-0">
+                            <span class="fw-bold fs-5">Do zapłaty:</span>
+                            <span class="fw-bold fs-4 text-primary">@TotalPrice zł</span>
+                        </div>
+                        <div class="text-muted small text-end" style="font-size:0.7rem;">Zawiera VAT i opłaty lokalne</div>
                     }
-                    <hr>
-                    <div class="d-flex justify-content-between align-items-center mb-0">
-                        <span class="fw-bold fs-5">Do zapłaty:</span>
-                        <span class="fw-bold fs-4 text-primary">@TotalPrice zł</span>
-                    </div>
-                    <div class="text-muted small">Cena zawiera podatki i opłaty</div>
+                    else
+                    {
+                        <div class="text-center py-4 text-muted small">Ładowanie podsumowania kosztów...</div>
+                    }
                 </div>
             </div>
         </div>
@@ -161,15 +182,53 @@
 </div>
 
 @code {
-    [Parameter] public int OfferId { get; set; }
+    [Parameter] public int TerminCenaId { get; set; }
+    [SupplyParameterFromQuery(Name = "offerId")] public int OfferId { get; set; }
+    [SupplyParameterFromQuery(Name = "liczbaOsob")] public int LiczbaOsob { get; set; } = 2;
+
     private int CurrentStep = 1;
-    private decimal BasePrice = 4998;
+    private decimal BasePrice = 0;
     private Dictionary<string, decimal> SelectedAddons = new();
     private string? errorMessage;
 
+    private ReadOfertaDto? Offer;
+    private TerminCena? wybranyTermin;
+    
+    private List<CreateKlientDto> Podrozni = new();
     private CreateRezerwacjaDto rezerwacjaDto = new CreateRezerwacjaDto();
 
     private decimal TotalPrice => BasePrice + SelectedAddons.Sum(x => x.Value);
+
+    protected override async Task OnInitializedAsync()
+    {
+        for (int i = 0; i < LiczbaOsob; i++)
+        {
+            Podrozni.Add(new CreateKlientDto());
+        }
+
+        try
+        {
+            var response = await Http.GetFromJsonAsync<ApiResponse<ReadOfertaDto>>($"api/oferty/{OfferId}");
+            if (response != null && response.Sukces)
+            {
+                Offer = response.Dane;
+                wybranyTermin = Offer?.TerminyCeny?.FirstOrDefault(t => t.Id == TerminCenaId);
+                
+                if (wybranyTermin != null)
+                {
+                    BasePrice = wybranyTermin.CenaPodstawowa * LiczbaOsob;
+                }
+                else
+                {
+                    errorMessage = "Nie odnaleziono wybranego terminu w bazie danych.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Problem z połączeniem z serwerem: {ex.Message}";
+        }
+    }
 
     private void NextStep() => CurrentStep++;
     private void PrevStep() => CurrentStep--;
@@ -180,34 +239,48 @@
         else SelectedAddons.Remove(name);
     }
 
+    private bool WalidujDanePodroznych()
+    {
+        return Podrozni.All(p => !string.IsNullOrWhiteSpace(p.Imie) && !string.IsNullOrWhiteSpace(p.Nazwisko));
+    }
+
     private async Task FinalizePayment()
     {
+        errorMessage = null;
         var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
-
         if (string.IsNullOrEmpty(token))
         {
-            errorMessage = "Zaloguj się, aby złożyć rezerwację!";
+            errorMessage = "Twoja sesja wygasła. Zaloguj się ponownie, aby dokonać rezerwacji!";
             return;
         }
 
-        rezerwacjaDto.KlientId = 1;
-        rezerwacjaDto.LiczbaOsob = 2;
-        rezerwacjaDto.TerminCenaId = OfferId;
+        if (Offer == null || wybranyTermin == null)
+        {
+            errorMessage = "Błąd krytyczny: Brak załadowanych danych oferty.";
+            return;
+        }
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "api/rezerwacje");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        request.Content = JsonContent.Create(rezerwacjaDto);
+        rezerwacjaDto.TerminCenaId = TerminCenaId;
+        rezerwacjaDto.HotelId = Offer.HotelId;
+        rezerwacjaDto.LiczbaOsob = LiczbaOsob;
+        rezerwacjaDto.PracownikId = 0; 
 
-        var odpowiedz = await Http.SendAsync(request);
-
-        if (odpowiedz.IsSuccessStatusCode)
+        var response = await Http.PostAsJsonAsync("api/rezerwacje", rezerwacjaDto);
+        if (response.IsSuccessStatusCode)
         {
             NavManager.NavigateTo("/my-bookings");
         }
         else
         {
-            errorMessage = await odpowiedz.Content.ReadAsStringAsync();
-            Console.WriteLine($"Błąd zapisu z API: {errorMessage}");
+            try
+            {
+                var bledy = await response.Content.ReadFromJsonAsync<List<string>>();
+                errorMessage = bledy != null ? string.Join(", ", bledy) : "Serwer odrzucił żądanie rezerwacji.";
+            }
+            catch
+            {
+                errorMessage = await response.Content.ReadAsStringAsync();
+            }
         }
     }
 }

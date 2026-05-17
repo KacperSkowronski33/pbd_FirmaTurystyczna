@@ -1,4 +1,6 @@
 ﻿@page "/admin/klienci"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.KlientDto
 @inject HttpClient Http
 
 <h3>Klienci</h3>
@@ -41,18 +43,14 @@ else
 }
 
 @code {
-    private List<KlientDto>? klienci;
+    private List<ReadKlientDto>? klienci;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<ReadKlientDto>>>("api/klienci");
+        if (response != null && response.Sukces)
         {
-            // Pobieramy bezpośrednio listę z backendu, bez żadnych wrapperów
-            klienci = await Http.GetFromJsonAsync<List<KlientDto>>("api/klienci");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Błąd pobierania: {ex.Message}");
+            klienci = response.Dane;
         }
     }
 
@@ -70,13 +68,5 @@ else
         {
             Console.WriteLine($"Błąd usuwania: {ex.Message}");
         }
-    }
-
-    public class KlientDto
-    {
-        public int Id { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string Imie { get; set; } = string.Empty;
-        public string Nazwisko { get; set; } = string.Empty;
     }
 }

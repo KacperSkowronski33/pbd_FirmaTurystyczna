@@ -21,10 +21,44 @@ namespace BookingApp.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ReadOfertaDto>>>> GetOferta()
+        public async Task<ActionResult<ApiResponse<IEnumerable<ReadOfertaDto>>>> GetOferta(
+            [FromQuery] string? cel,
+            [FromQuery] decimal? maxCena,
+            [FromQuery] string? gwiazdki, 
+            [FromQuery] int? typWyzywieniaId)
         {
-            var oferty = await _context.Oferty
-                .AsNoTracking()
+            var query = _context.Oferty.AsNoTracking();
+
+            if (!string.IsNullOrEmpty(cel))
+            {
+                query = query.Where(o => o.Hotel.NazwaHotelu.ToLower().Contains(cel.ToLower()) ||
+                                         o.Hotel.Miejscowosc.Nazwa.ToLower().Contains(cel.ToLower()));
+            }
+
+            if (maxCena.HasValue)
+            {
+                query = query.Where(o => o.TerminyCeny.Any(t => t.CenaPodstawowa <= maxCena.Value));
+            }
+
+            if (!string.IsNullOrEmpty(gwiazdki))
+            {
+                var listaGwiazdek = gwiazdki.Split(',')
+                                            .Select(s => int.TryParse(s, out var n) ? n : (int?)null)
+                                            .Where(n => n.HasValue)
+                                            .Select(n => n!.Value)
+                                            .ToList();
+
+                if (listaGwiazdek.Any())
+                {
+                    query = query.Where(o => listaGwiazdek.Contains(o.Hotel.LiczbaGwiazdek));
+                }
+            }
+            if (typWyzywieniaId.HasValue)
+            {
+                query = query.Where(o => o.TypWyzywieniaId == typWyzywieniaId.Value);
+            }
+
+            var oferty = await query
                 .Select(o => new ReadOfertaDto
                 {
                     Id = o.Id,
@@ -34,7 +68,33 @@ namespace BookingApp.Api.Controllers
                     TypWyzywienia = o.TypWyzywienia,
                     TerminyCeny = o.TerminyCeny,
                 }).ToListAsync();
+
             return Ok(ApiResponse<IEnumerable<ReadOfertaDto>>.Ok(oferty));
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApiResponse<ReadOfertaDto>>> GetOferta(int id)
+        {
+            var oferta = await _context.Oferty
+                .AsNoTracking()
+                .Where(o => o.Id == id)
+                .Select(o => new ReadOfertaDto
+                {
+                    Id = o.Id,
+                    HotelId = o.HotelId,
+                    TypWyzywieniaId = o.TypWyzywieniaId,
+                    Hotel = o.Hotel,
+                    TypWyzywienia = o.TypWyzywienia,
+                    TerminyCeny = o.TerminyCeny,
+                })
+                .FirstOrDefaultAsync();
+
+            if (oferta == null)
+            {
+                return NotFound(ApiResponse.Error($"Oferta o id {id} nie istnieje w bazie"));
+            }
+
+            return Ok(ApiResponse<ReadOfertaDto>.Ok(oferta));
         }
 
         [HttpPost]
