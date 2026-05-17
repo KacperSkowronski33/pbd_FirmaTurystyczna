@@ -42,7 +42,8 @@ namespace BookingApp.Api.Controllers
                 var pracownik = await _context.Pracownicy
                     .Include(p => p.Rola)
                     .FirstOrDefaultAsync(p => p.Email == loginDto.Identifier);
-                if (pracownik == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, pracownik.Haslo))
+
+                if (pracownik == null || pracownik.Haslo != loginDto.Haslo)
                 {
                     return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
                 }
@@ -56,9 +57,9 @@ namespace BookingApp.Api.Controllers
                 var klient = await _context.Klienci
                     .FirstOrDefaultAsync(k => k.Email == loginDto.Identifier);
 
-                if (klient == null || !BCrypt.Net.BCrypt.Verify(loginDto.Haslo, klient.Haslo))
+                if (klient == null || klient.Haslo != loginDto.Haslo)
                 {
-                    return Unauthorized(ApiResponse<LoginResultDto>.Error("Niepoprawny login lub hasło"));
+                    return Unauthorized(new LoginResultDto { Success = false, Wiadomosc = "Niepoprawny login lub hasło" });
                 }
                 rola = TypRoli.Klient;
                 userMail = klient.Email;
@@ -72,7 +73,6 @@ namespace BookingApp.Api.Controllers
 
         private string GenJwtToken(int Id, string Mail, TypRoli Rola, string Name)
         {
-
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, Id.ToString()),
@@ -91,7 +91,8 @@ namespace BookingApp.Api.Controllers
                 claims,
                 expires: expires,
                 signingCredentials: creds
-                );
+            );
+
             return new JwtSecurityTokenHandler().WriteToken(Token);
         }
 

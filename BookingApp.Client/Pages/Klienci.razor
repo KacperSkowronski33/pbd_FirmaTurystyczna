@@ -1,4 +1,4 @@
-﻿@page "/klienci"
+﻿@page "/admin/klienci"
 @inject HttpClient Http
 
 <h3>Klienci</h3>
@@ -13,13 +13,14 @@ else if (!klienci.Any())
 }
 else
 {
-    <table class="table">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Id</th>
                 <th>Email</th>
                 <th>Imię</th>
                 <th>Nazwisko</th>
+                <th>Akcje</th>
             </tr>
         </thead>
         <tbody>
@@ -30,6 +31,9 @@ else
                     <td>@k.Email</td>
                     <td>@k.Imie</td>
                     <td>@k.Nazwisko</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => UsunKlienta(k.Id)">Usuń</button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -37,18 +41,42 @@ else
 }
 
 @code {
-    private List<KlientDto> klienci;
+    private List<KlientDto>? klienci;
 
     protected override async Task OnInitializedAsync()
     {
-        klienci = await Http.GetFromJsonAsync<List<KlientDto>>("api/klienci");
+        try
+        {
+            // Pobieramy bezpośrednio listę z backendu, bez żadnych wrapperów
+            klienci = await Http.GetFromJsonAsync<List<KlientDto>>("api/klienci");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania: {ex.Message}");
+        }
+    }
+
+    private async Task UsunKlienta(int id)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/klienci/{id}");
+            if (response.IsSuccessStatusCode && klienci != null)
+            {
+                klienci.RemoveAll(k => k.Id == id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd usuwania: {ex.Message}");
+        }
     }
 
     public class KlientDto
     {
         public int Id { get; set; }
-        public string Email { get; set; }
-        public string Imie { get; set; }
-        public string Nazwisko { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Imie { get; set; } = string.Empty;
+        public string Nazwisko { get; set; } = string.Empty;
     }
 }

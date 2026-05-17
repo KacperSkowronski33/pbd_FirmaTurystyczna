@@ -1,0 +1,75 @@
+﻿@page "/login"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <div class="card shadow border-0 p-4">
+                <h3 class="text-center mb-4 fw-bold">Logowanie</h3>
+
+                @if (!string.IsNullOrEmpty(komunikat))
+                {
+                    <div class="alert alert-danger">@komunikat</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Email (Klient) lub Login (Pracownik)</label>
+                    <input type="text" class="form-control" @bind="model.Identifier" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Hasło</label>
+                    <input type="password" class="form-control" @bind="model.Haslo" />
+                </div>
+
+                <button class="btn btn-primary w-100 rounded-pill mt-2" @onclick="Zaloguj">Zaloguj się</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel model = new();
+    private string komunikat = "";
+
+    private async Task Zaloguj()
+    {
+        var response = await Http.PostAsJsonAsync("api/auth/login", model);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<LoginResultDto>();
+            if (result != null && result.Success)
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+                NavManager.NavigateTo("/", forceLoad: true);
+            }
+        }
+        else
+        {
+            try
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResultDto>();
+                komunikat = result?.Wiadomosc ?? "Niepoprawny login lub hasło.";
+            }
+            catch
+            {
+                komunikat = "Błąd logowania.";
+            }
+        }
+    }
+
+    public class LoginModel
+    {
+        public string Identifier { get; set; } = "";
+        public string Haslo { get; set; } = "";
+    }
+
+    public class LoginResultDto
+    {
+        public bool Success { get; set; }
+        public string Wiadomosc { get; set; } = "";
+        public string Token { get; set; } = "";
+    }
+}

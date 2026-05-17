@@ -1,5 +1,4 @@
-﻿@page "/rezerwacje"
-@using BookingApp.Shared.Models
+﻿@page "/admin/rezerwacje"
 @using BookingApp.Shared.DTOs.RezerwacjaDto
 @inject HttpClient Http
 
@@ -22,6 +21,7 @@ else
                 <th>Data Utworzenia</th>
                 <th>Liczba Osób</th>
                 <th>Kwota</th>
+                <th>Akcje</th>
             </tr>
         </thead>
         <tbody>
@@ -29,9 +29,12 @@ else
             {
                 <tr>
                     <td>@rez.Id</td>
-                    @* <td>@rez.DataUtworzenia.ToString("dd.MM.yyyy")</td>
+                    <td>@rez.DataUtworzenia.ToString("dd.MM.yyyy HH:mm")</td>
                     <td>@rez.LiczbaOsob</td>
-                    <td>@rez.KwotaCalkowita PLN</td> *@
+                    <td class="text-success fw-bold">@rez.KwotaCalkowita PLN</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => UsunRezerwacje(rez.Id)">Usuń</button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -44,5 +47,15 @@ else
     protected override async Task OnInitializedAsync()
     {
         rezerwacje = await Http.GetFromJsonAsync<List<ReadRezerwacjaDto>>("api/Rezerwacje");
+    }
+
+    private async Task UsunRezerwacje(int id)
+    {
+        await Http.DeleteAsync($"api/Rezerwacje/{id}");
+
+        if (rezerwacje != null)
+        {
+            rezerwacje.RemoveAll(r => r.Id == id);
+        }
     }
 }

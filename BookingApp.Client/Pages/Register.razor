@@ -1,0 +1,69 @@
+﻿@page "/register"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <div class="card shadow border-0 p-4">
+                <h3 class="text-center mb-4 fw-bold">Rejestracja</h3>
+
+                @if (!string.IsNullOrEmpty(komunikat))
+                {
+                    <div class="alert @(czySukces ? "alert-success" : "alert-danger")">@komunikat</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Imię</label>
+                    <input type="text" class="form-control" @bind="model.Imie" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nazwisko</label>
+                    <input type="text" class="form-control" @bind="model.Nazwisko" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" @bind="model.Email" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Hasło</label>
+                    <input type="password" class="form-control" @bind="model.Haslo" />
+                </div>
+
+                <button class="btn btn-primary w-100 rounded-pill mt-2" @onclick="Zarejestruj">Zarejestruj się</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel model = new();
+    private string komunikat = "";
+    private bool czySukces = false;
+
+    private async Task Zarejestruj()
+{
+        var response = await Http.PostAsJsonAsync("api/klienci", model);
+
+        if (response.IsSuccessStatusCode)
+        {
+            czySukces = true;
+            komunikat = "Konto zostało pomyślnie utworzone!";
+            await Task.Delay(1500);
+            NavManager.NavigateTo("/login");
+        }
+        else
+        {
+            czySukces = false;
+            komunikat = "Wystąpił błąd rejestracji. Upewnij się, że dane są poprawne.";
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string Imie { get; set; } = "";
+        public string Nazwisko { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Haslo { get; set; } = "";
+    }
+}
