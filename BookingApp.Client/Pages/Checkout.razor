@@ -131,7 +131,7 @@
 
             @* NAWIGACJA PRZYCISKAMI *@
             <div class="d-flex justify-content-between mt-4">
-                <button class="btn btn-outline-secondary px-4 rounded-pill" @onclick="PrevStep" disabled="@(CurrentStep == 1)">Wstecz</button>
+                <button class="btn btn-outline-secondary px-4 rounded-pill" @onclick="PrevStep">Wstecz</button>                
                 @if (CurrentStep < 3)
                 {
                     <button class="btn btn-primary px-5 rounded-pill shadow" @onclick="NextStep" disabled="@(CurrentStep == 1 && !WalidujDanePodroznych())">Dalej</button>
@@ -150,7 +150,8 @@
                     @if (Offer != null && wybranyTermin != null)
                     {
                         <h5 class="fw-bold mb-1">@Offer.Hotel?.NazwaHotelu</h5>
-                        <p class="text-muted small mb-3"><i class="bi bi-calendar-range me-1"></i> @wybranyTermin.DataOd.ToString("dd.MM.yyyy") - @wybranyTermin.DataDo.ToString("dd.MM.yyyy")</p>
+                        @*@<p class="text-muted small mb-3"><i class="bi bi-calendar-range me-1"></i> @wybranyTermin.DataOd.ToString("dd.MM.yyyy") - @wybranyTermin.DataDo.ToString("dd.MM.yyyy")</p>*@
+                        <p class="text-muted small mb-3"><i class="bi bi-calendar-range me-1"></i> @WyswietlanaDataOd - @WyswietlanaDataDo</p>
                         <hr />
                         
                         <div class="d-flex justify-content-between small mb-2">
@@ -181,10 +182,14 @@
     </div>
 </div>
 
+
 @code {
     [Parameter] public int TerminCenaId { get; set; }
     [SupplyParameterFromQuery(Name = "offerId")] public int OfferId { get; set; }
     [SupplyParameterFromQuery(Name = "liczbaOsob")] public int LiczbaOsob { get; set; } = 2;
+
+    [SupplyParameterFromQuery(Name = "customOd")] public string? CustomOd { get; set; }
+    [SupplyParameterFromQuery(Name = "customDo")] public string? CustomDo { get; set; }
 
     private int CurrentStep = 1;
     private decimal BasePrice = 0;
@@ -198,6 +203,14 @@
     private CreateRezerwacjaDto rezerwacjaDto = new CreateRezerwacjaDto();
 
     private decimal TotalPrice => BasePrice + SelectedAddons.Sum(x => x.Value);
+
+    private string WyswietlanaDataOd => !string.IsNullOrEmpty(CustomOd)
+        ? DateTime.Parse(CustomOd).ToString("dd.MM.yyyy")
+        : wybranyTermin?.DataOd.ToString("dd.MM.yyyy") ?? "01.01.0001";
+
+    private string WyswietlanaDataDo => !string.IsNullOrEmpty(CustomDo)
+        ? DateTime.Parse(CustomDo).ToString("dd.MM.yyyy")
+        : wybranyTermin?.DataDo.ToString("dd.MM.yyyy") ?? "01.01.0001";
 
     protected override async Task OnInitializedAsync()
     {
@@ -231,7 +244,7 @@
     }
 
     private void NextStep() => CurrentStep++;
-    private void PrevStep() => CurrentStep--;
+    //private void PrevStep() => CurrentStep--;
 
     private void ToggleAddon(string name, decimal price, bool isSelected)
     {
@@ -250,37 +263,40 @@
         var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
         if (string.IsNullOrEmpty(token))
         {
-            errorMessage = "Twoja sesja wygasła. Zaloguj się ponownie, aby dokonać rezerwacji!";
+            errorMessage = "Twoja sesja wygasła. Zaloguj się ponownie.";
             return;
         }
 
         if (Offer == null || wybranyTermin == null)
         {
-            errorMessage = "Błąd krytyczny: Brak załadowanych danych oferty.";
+            errorMessage = "Błąd krytyczny: Brak danych oferty.";
             return;
         }
 
         rezerwacjaDto.TerminCenaId = TerminCenaId;
         rezerwacjaDto.HotelId = Offer.HotelId;
         rezerwacjaDto.LiczbaOsob = LiczbaOsob;
-        rezerwacjaDto.PracownikId = 0; 
+        rezerwacjaDto.PracownikId = 0;
 
         var response = await Http.PostAsJsonAsync("api/rezerwacje", rezerwacjaDto);
         if (response.IsSuccessStatusCode)
         {
-            NavManager.NavigateTo("/my-bookings");
+            NavManager.NavigateTo("/my-bookings?sukces=true");
         }
         else
         {
-            try
-            {
-                var bledy = await response.Content.ReadFromJsonAsync<List<string>>();
-                errorMessage = bledy != null ? string.Join(", ", bledy) : "Serwer odrzucił żądanie rezerwacji.";
-            }
-            catch
-            {
-                errorMessage = await response.Content.ReadAsStringAsync();
-            }
+            errorMessage = "Serwer odrzucił żądanie zapisu rezerwacji.";
+        }
+    }
+    private void PrevStep()
+    {
+        if (CurrentStep > 1)
+        {
+            CurrentStep--;
+        }
+        else
+        {
+            NavManager.NavigateTo($"/offer-details/{OfferId}?osoby={LiczbaOsob}");
         }
     }
 }

@@ -22,10 +22,10 @@ namespace BookingApp.Api.Controllers
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<ReadOfertaDto>>>> GetOferta(
-            [FromQuery] string? cel,
-            [FromQuery] decimal? maxCena,
-            [FromQuery] string? gwiazdki, 
-            [FromQuery] int? typWyzywieniaId)
+    [FromQuery] string? cel,
+    [FromQuery] decimal? maxCena,
+    [FromQuery] string? gwiazdki,
+    [FromQuery] int? typWyzywieniaId)
         {
             var query = _context.Oferty.AsNoTracking();
 
@@ -34,24 +34,14 @@ namespace BookingApp.Api.Controllers
                 query = query.Where(o => o.Hotel.NazwaHotelu.ToLower().Contains(cel.ToLower()) ||
                                          o.Hotel.Miejscowosc.Nazwa.ToLower().Contains(cel.ToLower()));
             }
-
             if (maxCena.HasValue)
             {
                 query = query.Where(o => o.TerminyCeny.Any(t => t.CenaPodstawowa <= maxCena.Value));
             }
-
             if (!string.IsNullOrEmpty(gwiazdki))
             {
-                var listaGwiazdek = gwiazdki.Split(',')
-                                            .Select(s => int.TryParse(s, out var n) ? n : (int?)null)
-                                            .Where(n => n.HasValue)
-                                            .Select(n => n!.Value)
-                                            .ToList();
-
-                if (listaGwiazdek.Any())
-                {
-                    query = query.Where(o => listaGwiazdek.Contains(o.Hotel.LiczbaGwiazdek));
-                }
+                var listaGwiazdek = gwiazdki.Split(',').Select(s => int.TryParse(s, out var n) ? n : (int?)null).Where(n => n.HasValue).Select(n => n!.Value).ToList();
+                if (listaGwiazdek.Any()) query = query.Where(o => listaGwiazdek.Contains(o.Hotel.LiczbaGwiazdek));
             }
             if (typWyzywieniaId.HasValue)
             {
@@ -64,9 +54,17 @@ namespace BookingApp.Api.Controllers
                     Id = o.Id,
                     HotelId = o.HotelId,
                     TypWyzywieniaId = o.TypWyzywieniaId,
-                    Hotel = o.Hotel,
                     TypWyzywienia = o.TypWyzywienia,
-                    TerminyCeny = o.TerminyCeny,
+                    TerminyCeny = o.TerminyCeny.ToList(), 
+                    Hotel = new Hotel
+                    {
+                        Id = o.Hotel.Id,
+                        NazwaHotelu = o.Hotel.NazwaHotelu,
+                        LiczbaGwiazdek = o.Hotel.LiczbaGwiazdek,
+                        MiejscowoscId = o.Hotel.MiejscowoscId,
+                        Miejscowosc = o.Hotel.Miejscowosc,
+                        ZdjeciaHotelu = o.Hotel.ZdjeciaHotelu.ToList()
+                    }
                 }).ToListAsync();
 
             return Ok(ApiResponse<IEnumerable<ReadOfertaDto>>.Ok(oferty));
@@ -83,9 +81,17 @@ namespace BookingApp.Api.Controllers
                     Id = o.Id,
                     HotelId = o.HotelId,
                     TypWyzywieniaId = o.TypWyzywieniaId,
-                    Hotel = o.Hotel,
                     TypWyzywienia = o.TypWyzywienia,
-                    TerminyCeny = o.TerminyCeny,
+                    TerminyCeny = o.TerminyCeny.ToList(),
+                    Hotel = new Hotel
+                    {
+                        Id = o.Hotel.Id,
+                        NazwaHotelu = o.Hotel.NazwaHotelu,
+                        LiczbaGwiazdek = o.Hotel.LiczbaGwiazdek,
+                        MiejscowoscId = o.Hotel.MiejscowoscId,
+                        Miejscowosc = o.Hotel.Miejscowosc, 
+                        ZdjeciaHotelu = o.Hotel.ZdjeciaHotelu.ToList() 
+                    }
                 })
                 .FirstOrDefaultAsync();
 

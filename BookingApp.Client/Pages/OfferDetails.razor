@@ -16,7 +16,6 @@
     else
     {
         var nazwaHotelu = Offer.Hotel?.NazwaHotelu ?? "Nieznany obiekt";
-        var lokalizacja = $"{Offer.Hotel?.Miejscowosc?.Nazwa}, {Offer.Hotel?.Miejscowosc?.KrajId}";
         var gwiazdki = Offer.Hotel?.LiczbaGwiazdek ?? 0;
         
         var wszystkieZdjecia = Offer.Hotel?.ZdjeciaHotelu?.Select(z => z.UrlZdjecia).ToList() ?? new List<string>();
@@ -36,7 +35,7 @@
                 <div class="d-flex justify-content-between align-items-end mb-3">
                     <div>
                         <h2 class="fw-bold mb-1">@nazwaHotelu</h2>
-                        <p class="text-muted mb-0"><i class="bi bi-geo-alt-fill text-primary"></i> @lokalizacja</p>
+                        <p class="text-muted mb-0"><i class="bi bi-geo-alt-fill text-primary"></i> @Offer.Hotel?.Miejscowosc?.Nazwa</p>
                     </div>
                     <div class="text-end">
                         <span class="badge bg-primary fs-5">
@@ -65,7 +64,7 @@
                 <div class="booking-widget p-4 shadow-sm border rounded bg-white">
                     <h5 class="fw-bold mb-3">Twoja rezerwacja</h5>
                     
-                    @* wybór liczby osób *@
+                    @* Liczba osób *@
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">Liczba uczestników:</label>
                         <div class="input-group input-group-sm">
@@ -74,33 +73,56 @@
                         </div>
                     </div>
 
-                    @* wybór terminu prosto z bazy *@
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Wybierz termin pobytu:</label>
-                        @if (Offer.TerminyCeny != null && Offer.TerminyCeny.Any())
-                        {
-                            <select class="form-select form-select-sm" @bind="wybraneTerminCenaId">
-                                @foreach (var t in Offer.TerminyCeny.OrderBy(x => x.DataOd))
-                                {
-                                    <option value="@t.Id">
-                                        @t.DataOd.ToString("dd.MM.yyyy") - @t.DataDo.ToString("dd.MM.yyyy") (@t.CenaPodstawowa.ToString("C0") / os.)
-                                    </option>
-                                }
-                            </select>
-                        }
-                        else
-                        {
-                            <div class="text-danger small py-1"><i class="bi bi-exclamation-circle"></i> Brak dostępnych terminów.</div>
-                        }
+                    @* Przełącznik na ręczny dobór dat *@
+                    <div class="form-check form-switch mb-3 small">
+                        <input class="form-check-input" type="checkbox" id="customDateToggle" @bind="uzyjWlasnychDat">
+                        <label class="form-check-label fw-bold text-muted" for="customDateToggle">Chcę wpisać własne daty</label>
                     </div>
 
-                    @* podsumowanie kosztów *@
-                    @if (wybranyTermin != null)
+                    @if (uzyjWlasnychDat)
+                    {
+                        @* Kalendarze do ręcznego wyboru dat *@
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small text-muted fw-bold">Od:</label>
+                                <input type="date" class="form-control form-control-sm" @bind="wlasnaDataOd" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted fw-bold">Do:</label>
+                                <input type="date" class="form-control form-control-sm" @bind="wlasnaDataDo" />
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @* Standardowa lista terminów z bazy *@
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Wybierz termin pobytu:</label>
+                            @if (Offer.TerminyCeny != null && Offer.TerminyCeny.Any())
+                            {
+                                <select class="form-select form-select-sm" @bind="wybraneTerminCenaId">
+                                    @foreach (var t in Offer.TerminyCeny.OrderBy(x => x.DataOd))
+                                    {
+                                        <option value="@t.Id">
+                                            @t.DataOd.ToString("dd.MM.yyyy") - @t.DataDo.ToString("dd.MM.yyyy") (@t.CenaPodstawowa.ToString("C0") / os.)
+                                        </option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <div class="text-danger small py-1"><i class="bi bi-exclamation-circle"></i> Brak dostępnych terminów.</div>
+                            }
+                        </div>
+                    }
+
+                    @* Dynamiczne podsumowanie ceny *@
+                    @if (UstalonaCenaPodstawowa > 0)
                     {
                         <div class="mb-4 p-3 bg-light rounded border">
                             <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
                                 <span>Cena za osobę:</span>
-                                <span class="fw-bold text-dark">@wybranyTermin.CenaPodstawowa.ToString("C0")</span>
+                                <span class="fw-bold text-dark">@UstalonaCenaPodstawowa.ToString("C0")</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
                                 <span>Liczba osób:</span>
@@ -109,18 +131,15 @@
                             <hr class="my-2" />
                             <div class="d-flex justify-content-between align-items-center">
                                 <span class="fw-bold fs-5">Suma:</span>
-                                <span class="fw-bold fs-4 text-primary">@((wybranyTermin.CenaPodstawowa * Osoby).ToString("C0"))</span>
+                                <span class="fw-bold fs-4 text-primary">@((UstalonaCenaPodstawowa * Osoby).ToString("C0"))</span>
                             </div>
-                            <p class="text-muted text-center small mt-2 mb-0" style="font-size: 0.75rem;">
-                                Kalkulacja pobrana bezpośrednio z bazy danych.
-                            </p>
                         </div>
                     }
 
-                    @* Przycisk przesyła do checkoutu ID konkretnego TERMINU *@
+                    @* Przycisk odblokowuje się również dla poprawnie wpisanych dat ręcznych *@
                     <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow"
                             @onclick="HandleBooking"
-                            disabled="@(wybraneTerminCenaId == null || Osoby < 1)">
+                            disabled="@(!czyMoznaRezerwowac())">
                         REZERWUJ TERAZ
                     </button>
                     
@@ -132,7 +151,7 @@
             </div>
         </div>
 
-        @* SEKCJA ZAKŁADEK  *@
+        @* SEKCJA ZAKŁADEK *@
         <div class="row mt-4">
             <div class="col-lg-8">
                 <ul class="nav nav-tabs custom-tabs mb-4">
@@ -152,11 +171,7 @@
                     {
                         <div class="animate-fade-in">
                             <h5 class="fw-bold">Szczegóły oferty</h5>
-                            <p>
-                                <strong>Typ wyżywienia:</strong>
-                                @(Offer.TypWyzywienia?.NazwaWyzywienia ?? "Brak szczegółowych danych")
-                            </p>
-
+                            <p><strong>Typ wyżywienia:</strong> @(Offer.TypWyzywienia?.NazwaWyzywienia ?? "Brak szczegółowych danych")</p>
                             @if (Offer.Hotel != null)
                             {
                                 <h5 class="fw-bold mt-4">Informacje o obiekcie</h5>
@@ -169,11 +184,7 @@
                     {
                         <div class="animate-fade-in">
                             <h5 class="fw-bold mb-3">Struktura pokoi w hotelu</h5>
-                            <p class="text-muted small">
-                                Obiekt posiada dedykowane strefy mieszkalne dopasowane do wybranego standardu.
-                                Szczegółowy podział na pokoje jedno- i dwuosobowe oraz dobór łóżek następuje automatycznie w kroku uzupełniania danych podróżnych.
-                            </p>
-                            <span class="badge border text-muted p-2"><i class="bi bi-info-circle me-1"></i> Oferta powiązana bezpośrednio z bazą rodzajów pokojów obiektu.</span>
+                            <p class="text-muted small">Obiekt posiada dedykowane strefy mieszkalne dopasowane do wybranego standardu.</p>
                         </div>
                     }
                     else if (ActiveTab == "reviews")
@@ -182,8 +193,6 @@
                             <h5 class="fw-bold mb-3">Ważne informacje dla podróżnych</h5>
                             <div class="p-3 bg-light rounded border small text-muted">
                                 <p class="mb-2">⏱️ <strong>Doba hotelowa:</strong> Zameldowanie od godziny 14:00, wymeldowanie do godziny 10:00 rano.</p>
-                                <p class="mb-2">🧳 <strong>Bagaż:</strong> Możliwość bezpłatnego pozostawienia bagażu w recepcji hotelu przed zameldowaniem.</p>
-                                <p class="mb-0">💳 <strong>Opłata klimatyczna:</strong> Może być wymagana dodatkowa opłata na miejscu (zależna od przepisów lokalnych danej miejscowości).</p>
                             </div>
                         </div>
                     }
@@ -202,7 +211,22 @@
     private string ActiveTab = "hotel";
     
     private int? wybraneTerminCenaId;
-    private TerminCena? wybranyTermin => Offer?.TerminyCeny?.FirstOrDefault(t => t.Id == wybraneTerminCenaId);
+    
+    private bool uzyjWlasnychDat = false;
+    private DateTime? wlasnaDataOd = DateTime.Today.AddDays(7);
+    private DateTime? wlasnaDataDo = DateTime.Today.AddDays(14);
+
+    private decimal UstalonaCenaPodstawowa
+    {
+        get
+        {
+            if (uzyjWlasnychDat)
+            {
+                return Offer?.TerminyCeny?.FirstOrDefault()?.CenaPodstawowa ?? 1500;
+            }
+            return Offer?.TerminyCeny?.FirstOrDefault(t => t.Id == wybraneTerminCenaId)?.CenaPodstawowa ?? 0;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -210,24 +234,48 @@
         if (response != null && response.Sukces)
         {
             Offer = response.Dane;
-            
             var domyslnyTermin = Offer?.TerminyCeny?.OrderBy(t => t.CenaPodstawowa).FirstOrDefault();
             if (domyslnyTermin != null)
             {
                 wybraneTerminCenaId = domyslnyTermin.Id;
             }
         }
-        else
+    }
+
+    private bool MoznaRezerwowac() => MoznaRezerwowac(); 
+    private bool czyMoznaRezerwowac()
+    {
+        if (Osoby < 1) return false;
+        if (uzyjWlasnychDat)
         {
-            komunikat = "Nie znaleziono takiej oferty.";
+            return wlasnaDataOd.HasValue && wlasnaDataDo.HasValue && wlasnaDataDo > wlasnaDataOd;
         }
+        return wybraneTerminCenaId.HasValue;
     }
 
     private void HandleBooking()
     {
-        if (wybraneTerminCenaId.HasValue)
+        komunikat = "";
+        int idTerminuDoWyslania = 0;
+
+        var zapasowyTermin = Offer?.TerminyCeny?.FirstOrDefault();
+        if (zapasowyTermin == null)
         {
-            NavManager.NavigateTo($"/checkout/{wybraneTerminCenaId.Value}?offerId={Offer.Id}&liczbaOsob={Osoby}");
+            komunikat = "Błąd: Ta oferta nie ma żadnego zdefiniowanego terminu w bazie danych (wymagany klucz obcy)! Uruchom DbSeeder.";
+            return;
+        }
+
+        if (uzyjWlasnychDat)
+        {
+            idTerminuDoWyslania = zapasowyTermin.Id;
+            NavManager.NavigateTo($"/checkout/{idTerminuDoWyslania}?offerId={Offer.Id}&liczbaOsob={Osoby}&customOd={wlasnaDataOd:yyyy-MM-dd}&customDo={wlasnaDataDo:yyyy-MM-dd}");
+        }
+        else
+        {
+            if (wybraneTerminCenaId.HasValue)
+            {
+                NavManager.NavigateTo($"/checkout/{wybraneTerminCenaId.Value}?offerId={Offer.Id}&liczbaOsob={Osoby}");
+            }
         }
     }
 }

@@ -4,7 +4,7 @@
 @inject NavigationManager NavManager
 @inject HttpClient Http
 
-@* Sekcja Header (Niebieskie tło pod wyszukiwarką) *@
+@* Sekcja Header *@
 <div class="hero-section">
     <div class="container text-start">
         <h1>Zaplanuj swoje wymarzone wakacje</h1>
@@ -12,7 +12,7 @@
     </div>
 </div>
 
-@* Żółta Wyszukiwarka *@
+@* Wyszukiwarka z urealnionym bindowaniem zmiennych *@
 <div class="search-container shadow-lg">
     <div class="search-input-group flex-grow-1">
         <span class="me-2">🛫</span>
@@ -30,7 +30,7 @@
     </div>
     <div class="search-input-group">
         <span class="me-2">👤</span>
-        <input type="number" id="osoby" min="1" max="10" @bind="_liczbaOsob" style="width: 70px; border:none; outline:none;" />
+        <input type="number" id="osoby" min="1" max="10" @bind="_liczbaOsob" style="width: 60px; border:none; outline:none;" />
         <span class="text-muted small ms-1">osób</span>
     </div>
     <button class="search-btn" @onclick="PrzejdzDoWyszukiwania">Szukaj</button>
@@ -43,7 +43,6 @@
     <div class="grid-container">
         @if (Offers == null)
         {
-            @* Szkielet ładowania (Placeholdery) *@
             @for (int i = 0; i < 4; i++)
             {
                 <div class="card-placeholder animate-pulse">
@@ -51,10 +50,6 @@
                     <div class="placeholder-content">
                         <div class="placeholder-box fw-bold text-muted">[ Nazwa obiektu ]</div>
                         <div class="placeholder-box small">[ Lokalizacja ]</div>
-                        <div class="placeholder-footer mt-auto">
-                            <div class="placeholder-box flex-fill">[ Ocena ]</div>
-                            <div class="placeholder-box flex-fill fw-bold">[ Cena ]</div>
-                        </div>
                     </div>
                 </div>
             }
@@ -74,16 +69,12 @@
                                     ? offer.TerminyCeny.Min(t => t.CenaPodstawowa)
                                     : 0;
                 var zdjecieUrl = offer.Hotel?.ZdjeciaHotelu?.FirstOrDefault()?.UrlZdjecia ?? "images/logo.jpg";
-                
                 var nazwaHotelu = offer.Hotel?.NazwaHotelu ?? "Nieznany hotel";
                 var lokalizacja = offer.Hotel?.Miejscowosc?.Nazwa ?? "Brak danych";
-                var gwiazdki = offer.Hotel?.LiczbaGwiazdek ?? 0; 
+                var gwiazdki = offer.Hotel?.LiczbaGwiazdek ?? 0;
 
-                <div class="offer-card shadow-sm">
-                    @* Wrzucamy znalezione zdjęcie *@
-                    <div class="offer-photo" style="background-image: url('@zdjecieUrl')">
-                        @* <span class="badge bg-danger m-2">Okazja</span> *@
-                    </div>
+                <div class="offer-card shadow-sm" @onclick='() => NavManager.NavigateTo($"offer-details/{offer.Id}?osoby={_liczbaOsob}")' style="cursor:pointer;">
+                    <div class="offer-photo" style="background-image: url('@zdjecieUrl')"></div>
                     <div class="offer-content">
                         <h5 class="fw-bold mb-1">@nazwaHotelu</h5>
                         <p class="text-muted small mb-3"><i class="bi bi-geo-alt"></i> @lokalizacja</p>
@@ -91,7 +82,6 @@
                             <div class="rating bg-primary text-white p-1 px-2 rounded small">@gwiazdki <i class="bi bi-star-fill"></i></div>
                             <div class="text-end">
                                 <span class="small text-muted d-block">od</span>
-                                @* Wyświetlamy najniższą cenę *@
                                 <span class="fw-bold fs-5 text-dark">@minimalnaCena.ToString("C0")</span>
                             </div>
                         </div>
@@ -123,7 +113,6 @@
 
     private void PrzejdzDoWyszukiwania()
     {
-        // NOWE: Przekazujemy wszystkie parametry w QueryStringu do strony /search
         var url = $"search?skad={Uri.EscapeDataString(_skad)}" +
                   $"&dokad={Uri.EscapeDataString(_dokad)}" +
                   $"&dataOd={_dataOd}" +
