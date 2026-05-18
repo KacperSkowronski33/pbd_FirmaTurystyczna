@@ -1,4 +1,6 @@
 ﻿@page "/login"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.Auth
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
@@ -30,46 +32,39 @@
 </div>
 
 @code {
-    private LoginModel model = new();
+    private LoginDto model = new() { Identifier = "", Haslo = "" };
     private string komunikat = "";
 
     private async Task Zaloguj()
     {
+        komunikat = "";
         var response = await Http.PostAsJsonAsync("api/auth/login", model);
 
         if (response.IsSuccessStatusCode)
         {
-            var result = await response.Content.ReadFromJsonAsync<LoginResultDto>();
-            if (result != null && result.Success)
+            var result = await response.Content.ReadFromJsonAsync<ApiResponse<LoginResultDto>>();
+            
+            if (result != null && result.Sukces && result.Dane != null)
             {
-                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Dane.Token);
                 NavManager.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                komunikat = result?.Wiadomosc ?? "Błąd logowania.";
             }
         }
         else
         {
             try
             {
-                var result = await response.Content.ReadFromJsonAsync<LoginResultDto>();
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<LoginResultDto>>();
                 komunikat = result?.Wiadomosc ?? "Niepoprawny login lub hasło.";
             }
             catch
             {
-                komunikat = "Błąd logowania.";
+                komunikat = "Niepoprawny login lub hasło.";
             }
         }
-    }
-
-    public class LoginModel
-    {
-        public string Identifier { get; set; } = "";
-        public string Haslo { get; set; } = "";
-    }
-
-    public class LoginResultDto
-    {
-        public bool Success { get; set; }
-        public string Wiadomosc { get; set; } = "";
-        public string Token { get; set; } = "";
     }
 }

@@ -83,5 +83,17 @@ namespace BookingApp.Api.Controllers
 
         }
 
+        //wyzywienie
+
+        [HttpGet("typy-wyzywienia")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<TypWyzywienia>>>> GetTypyWyzywienia()
+        {
+            var typy = await _context.TypyWyzywienia
+                .AsNoTracking()
+                .OrderBy(w => w.NazwaWyzywienia)
+                .ToListAsync();
+
+            return Ok(ApiResponse<IEnumerable<TypWyzywienia>>.Ok(typy));
+        }
     }
 }

@@ -1,5 +1,9 @@
 ﻿@page "/search"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.OfertaDto
+@using BookingApp.Shared.Models
 @inject NavigationManager NavManager
+@inject HttpClient Http
 
 <div class="container mt-4">
     <div class="row">
@@ -8,30 +12,43 @@
             <div class="filter-card p-3 bg-white shadow-sm rounded border">
                 <h6 class="fw-bold mb-3 border-bottom pb-2">Filtruj wyniki</h6>
 
+                @if (!string.IsNullOrEmpty(Dokad))
+                {
+                    <div class="mb-3 alert alert-secondary py-1 px-2 small">
+                        Cel podróży: <strong>@Dokad</strong>
+                    </div>
+                }
+
                 <div class="mb-4">
                     <label class="form-label small fw-bold">Budżet (do @PriceLimit zł)</label>
-                    <input type="range" class="form-range" min="500" max="10000" step="100" @bind="PriceLimit" @bind:event="oninput">
+                    <input type="range" class="form-range" min="500" max="10000" step="100"
+                           @bind="PriceLimit" @bind:event="oninput" @bind:after="PerformSearch">
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label small fw-bold">Standard</label>
                     <div class="form-check small">
-                        <input class="form-check-input" type="checkbox"> 3 gwiazdki
+                        <input class="form-check-input" type="checkbox" @bind="pokaz3Gwiazdki" @bind:after="PerformSearch"> 3 gwiazdki
                     </div>
                     <div class="form-check small">
-                        <input class="form-check-input" type="checkbox"> 4 gwiazdki
+                        <input class="form-check-input" type="checkbox" @bind="pokaz4Gwiazdki" @bind:after="PerformSearch"> 4 gwiazdki
                     </div>
                     <div class="form-check small">
-                        <input class="form-check-input" type="checkbox"> 5 gwiazdek
+                        <input class="form-check-input" type="checkbox" @bind="pokaz5Gwiazdki" @bind:after="PerformSearch"> 5 gwiazdek
                     </div>
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label small fw-bold">Wyżywienie</label>
-                    <select class="form-select form-select-sm">
-                        <option>Wszystkie</option>
-                        <option>All Inclusive</option>
-                        <option>Śniadania i obiadokolacje</option>
+                    <select class="form-select form-select-sm" @bind="selectedWyzywienieId" @bind:after="PerformSearch">
+                        <option value="">Wszystkie</option>
+                        @if (slownikWyzywienia != null)
+                        {
+                            @foreach (var w in slownikWyzywienia)
+                            {
+                                <option value="@w.Id">@w.NazwaWyzywienia</option>
+                            }
+                        }
                     </select>
                 </div>
             </div>
@@ -65,35 +82,43 @@
             {
                 @foreach (var offer in FoundOffers)
                 {
+                    var zdjecieUrl = offer.Hotel?.ZdjeciaHotelu?.FirstOrDefault()?.UrlZdjecia ?? "images/logo.jpg";
+                    var nazwaHotelu = offer.Hotel?.NazwaHotelu ?? "Nieznana oferta";
+                    var gwiazdki = offer.Hotel?.LiczbaGwiazdek ?? 0;
+                    
+                    var minimalnaCena = offer.TerminyCeny != null && offer.TerminyCeny.Any()
+                                        ? offer.TerminyCeny.Min(t => t.CenaPodstawowa)
+                                        : 0;
+
+                    var miejscowosc = offer.Hotel?.Miejscowosc?.Nazwa ?? "Nieznana Miejscowosc";
+                    var wyzywienie = offer.TypWyzywienia?.NazwaWyzywienia ?? "Brak danych";
+
                     <div class="card mb-3 horizontal-offer shadow-sm border-0">
                         <div class="row g-0">
                             <div class="col-md-4">
-                                <div class="h-100 min-vh-20 bg-light position-relative" style="background: url('@offer.ImageUrl') center/cover">
-                                    @if (offer.IsBestseller)
-                                    {
-                                        <span class="badge bg-warning text-dark position-absolute m-2 top-0 start-0">Bestseller</span>
-                                    }
+                                <div class="h-100 min-vh-20 bg-light position-relative" style="background: url('@zdjecieUrl') center/cover; min-height: 200px;">
                                 </div>
                             </div>
                             <div class="col-md-8">
                                 <div class="card-body d-flex flex-column h-100">
                                     <div class="d-flex justify-content-between">
-                                        <h5 class="card-title fw-bold">@offer.Title</h5>
-                                        <div class="text-primary fw-bold">@offer.Rating / 10</div>
+                                        <h5 class="card-title fw-bold">@nazwaHotelu</h5>
+                                        <div class="text-primary fw-bold">
+                                            @gwiazdki <i class="bi bi-star-fill text-warning"></i>
+                                        </div>
                                     </div>
-                                    <p class="card-text text-muted small">@offer.Description</p>
+                                    
                                     <div class="mt-auto d-flex justify-content-between align-items-end">
                                         <div class="tags">
-                                            @foreach (var tag in offer.Tags)
-                                            {
-                                                <span class="badge border text-muted fw-normal me-1">@tag</span>
-                                            }
+                                            <span class="badge border text-muted fw-normal me-1"><i class="bi bi-geo-alt"></i> @miejscowosc</span>
+                                            <span class="badge border text-muted fw-normal me-1"><i class="bi bi-cup-hot"></i> @wyzywienie</span>
                                         </div>
                                         <div class="text-end">
-                                            <div class="text-muted small">Cena za osobę</div>
-                                            <div class="fs-4 fw-bold text-primary">@offer.Price zł</div>
-                                            <button class="btn btn-primary btn-sm px-4 rounded-pill"
-                                                    @onclick='() => NavManager.NavigateTo($"offer-details/{offer.Id}")'>
+                                            <div class="text-muted small">Cena za osobę od</div>
+                                            <div class="fs-4 fw-bold text-primary">@minimalnaCena.ToString("C0")</div>
+                                            @* Przekazujemy realną liczbę osób dalej do karty szczegółów *@
+                                            <button class="btn btn-primary btn-sm px-4 rounded-pill mt-1"
+                                                    @onclick='() => NavManager.NavigateTo($"offer-details/{offer.Id}?osoby={LiczbaOsob}")'>
                                                 Wybierz
                                             </button>
                                         </div>
@@ -109,39 +134,64 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "skad")] public string? Skad { get; set; }
+    [SupplyParameterFromQuery(Name = "dokad")] public string? Dokad { get; set; }
+    [SupplyParameterFromQuery(Name = "dataOd")] public DateTime? DataOd { get; set; }
+    [SupplyParameterFromQuery(Name = "dataDo")] public DateTime? DataDo { get; set; }
+    [SupplyParameterFromQuery(Name = "liczbaOsob")] public int LiczbaOsob { get; set; } = 2;
+
     private int PriceLimit = 5000;
-
-    private List<SearchOffer>? FoundOffers;
-
-    public class SearchOffer
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = "";
-        public string Description { get; set; } = "";
-        public decimal Price { get; set; }
-        public string ImageUrl { get; set; } = "";
-        public string Rating { get; set; } = "";
-        public List<string> Tags { get; set; } = new();
-        public bool IsBestseller { get; set; }
-    }
+    private List<ReadOfertaDto>? FoundOffers;
+    
+    private bool pokaz3Gwiazdki;
+    private bool pokaz4Gwiazdki;
+    private bool pokaz5Gwiazdki;
+    private string? selectedWyzywienieId;
+    private List<TypWyzywienia>? slownikWyzywienia;
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(500);
-
-        FoundOffers = new List<SearchOffer>
-    {
-        new SearchOffer
+        try
         {
-            Id = 101,
-            Title = "Hotel Testowy",
-            Description = "Jeśli to widzisz, wyszukiwarka działa!",
-            Price = 1500,
-            ImageUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400",
-            Rating = "9.5",
-            //Tags = new List<string> { "Basen", "Wi-Fi" }
+            var response = await Http.GetFromJsonAsync<ApiResponse<List<TypWyzywienia>>>("api/Lookups/typy-wyzywienia");
+            if (response != null && response.Sukces)
+            {
+                slownikWyzywienia = response.Dane;
+            }
         }
-    };
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania wyżywień: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await PerformSearch();
+    }
+
+    private async Task PerformSearch()
+    {
+        var wybraneGwiazdki = new List<string>();
+        if (pokaz3Gwiazdki) wybraneGwiazdki.Add("3");
+        if (pokaz4Gwiazdki) wybraneGwiazdki.Add("4");
+        if (pokaz5Gwiazdki) wybraneGwiazdki.Add("5");
+        string gwiazdkiParam = string.Join(",", wybraneGwiazdki);
+
+        var url = $"api/oferty?cel={Uri.EscapeDataString(Dokad ?? "")}" +
+                  $"&maxCena={PriceLimit}" +
+                  $"&gwiazdki={gwiazdkiParam}";
+
+        if (!string.IsNullOrEmpty(selectedWyzywienieId))
+        {
+            url += $"&typWyzywieniaId={selectedWyzywienieId}";
+        }
+
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<ReadOfertaDto>>>(url);
+        if (response != null && response.Sukces)
+        {
+            FoundOffers = response.Dane;
+        }
     }
 }
 

@@ -10,7 +10,7 @@ namespace BookingApp.Shared.Models
     {
         public int Id { get; set; } 
         public int OfertaId { get; set; }
-        public DateOnly DataOd {  get; set; }
+        public DateTime DataOd {  get; set; }
         public DateTime DataDo { get; set; }
         public decimal CenaPodstawowa { get; set; }
         public Oferta Oferta {  get; set; }

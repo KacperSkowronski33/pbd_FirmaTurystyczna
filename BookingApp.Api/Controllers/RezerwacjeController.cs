@@ -27,11 +27,7 @@ namespace BookingApp.Api.Controllers
         [Authorize]
         public async Task<ActionResult> PostRezerwacja(CreateRezerwacjaDto dto)
         {
-            var wynikWalidacja = await _validator.ValidateAsync(dto);
-            if (!wynikWalidacja.IsValid)
-            {
-                return BadRequest(wynikWalidacja.Errors.Select(e => e.ErrorMessage));
-            }
+            
 
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)
                        ?? User.FindFirst("id")
@@ -40,6 +36,14 @@ namespace BookingApp.Api.Controllers
             if (idClaim == null || !int.TryParse(idClaim.Value, out int zalogowanyKlientId))
             {
                 return Unauthorized("Nie udało się zweryfikować Twojego konta.");
+            }
+
+            dto.KlientId = zalogowanyKlientId;
+
+            var wynikWalidacja = await _validator.ValidateAsync(dto);
+            if (!wynikWalidacja.IsValid)
+            {
+                return BadRequest(wynikWalidacja.Errors.Select(e => e.ErrorMessage));
             }
 
             var termin = await _context.TerminyCeny.FindAsync(dto.TerminCenaId);
@@ -53,7 +57,7 @@ namespace BookingApp.Api.Controllers
                 KlientId = zalogowanyKlientId,
                 TerminCenaId = dto.TerminCenaId,
                 LiczbaOsob = dto.LiczbaOsob,
-                KwotaCalkowita = termin.CenaPodstawowa,
+                KwotaCalkowita = termin.CenaPodstawowa * dto.LiczbaOsob,
                 DataUtworzenia = DateTime.UtcNow,
                 PracownikId = dto.PracownikId > 0 ? dto.PracownikId : null,
                 Pracownik = null,

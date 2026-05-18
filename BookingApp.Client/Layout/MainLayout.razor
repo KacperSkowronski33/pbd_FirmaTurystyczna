@@ -1,9 +1,7 @@
 ﻿@inherits LayoutComponentBase
-
-@{
-    // Zmień na false, aby zobaczyć widok zwykłego użytkownika
-    bool pokazujJakoAdmin = true;
-}
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
 
 <div class="page">
     @if (pokazujJakoAdmin)
@@ -28,3 +26,79 @@
         <Footer />
     }
 </div>
+
+@code {
+    private bool pokazujJakoAdmin = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SprawdzUprawnieniaAdmina();
+        }
+    }
+
+    private async Task SprawdzUprawnieniaAdmina()
+    {
+        try
+        {
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            
+            if (!string.IsNullOrEmpty(token))
+            {
+                var rola = ExtractRoleFromJwt(token);
+                
+                pokazujJakoAdmin = rola.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                                   rola.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||
+                                   rola.Equals("Pracownik", StringComparison.OrdinalIgnoreCase);
+            }
+            else
+            {
+                pokazujJakoAdmin = false;
+            }
+        }
+        catch
+        {
+            pokazujJakoAdmin = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// </summary>
+    private string ExtractRoleFromJwt(string jwt)
+    {
+        try
+        {
+            var parts = jwt.Split('.');
+            if (parts.Length < 2) return "";
+            var payload = parts[1];
+            
+            payload = payload.Replace('-', '+').Replace('_', '/');
+            switch (payload.Length % 4)
+            {
+                case 2: payload += "=="; break;
+                case 3: payload += "="; break;
+            }
+            
+            var bytes = Convert.FromBase64String(payload);
+            var json = System.Text.Encoding.UTF8.GetString(bytes);
+            
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            
+            if (root.TryGetProperty("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", out var roleElem))
+            {
+                return roleElem.GetString() ?? "";
+            }
+            
+            if (root.TryGetProperty("role", out roleElem))
+            {
+                return roleElem.GetString() ?? "";
+            }
+        }
+        catch { }
+        return "";
+    }
+}

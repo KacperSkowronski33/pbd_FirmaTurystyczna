@@ -5,7 +5,20 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
 
-<div class="container mt-5">
+<div class="container mt-4">
+
+    @if (pokazBaner)
+    {
+        <div class="alert alert-success shadow-sm d-flex align-items-center animate-fade-in mb-4" role="alert" style="border-left: 5px solid #198754; transition: opacity 0.5s;">
+            <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
+            <div>
+                <h6 class="alert-heading fw-bold mb-1">Rezerwacja została pomyślnie zarejestrowana!</h6>
+                <p class="mb-0 small text-muted">System oczekuje na zaksięgowanie wpłaty z systemu rozliczeniowego. Twój status zaktualizuje się automatycznie.</p>
+            </div>
+        </div>
+    }
+
+    @* NAGŁÓWEK STRONY *@
     <h3 class="fw-bold mb-4"><i class="bi bi-briefcase text-primary"></i> Moje Rezerwacje</h3>
 
     @if (trwaLadowanie)
@@ -39,29 +52,46 @@
     }
 </div>
 
+
 @code {
+    [SupplyParameterFromQuery(Name = "sukces")] public bool CzySukces { get; set; }
+
+    private bool pokazBaner = false;
     private List<ReadRezerwacjaDto>? rezerwacje;
     private bool trwaLadowanie = true;
 
+    protected override async Task OnParametersSetAsync()
+    {
+        if (CzySukces && !pokazBaner)
+        {
+            pokazBaner = true;
+            _ = UruchomOdliczanieBaneru();
+        }
+    }
+
+    private async Task UruchomOdliczanieBaneru()
+    {
+        await Task.Delay(10000);
+        
+        pokazBaner = false;
+        StateHasChanged();
+    }
+    
     protected override async Task OnInitializedAsync()
     {
-        // 1. Wyciągamy token z localStorage
         var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
 
         if (string.IsNullOrEmpty(token))
         {
-            // Jeśli ktoś wejdzie z palca bez logowania, odrzucamy go na stronę logowania
             NavManager.NavigateTo("/login");
             return;
         }
 
-        // 2. Tworzymy specjalne zapytanie z przypiętym tokenem ("Bearer")
         var request = new HttpRequestMessage(HttpMethod.Get, "api/Rezerwacje/moje");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         try
         {
-            // 3. Strzelamy do zabezpieczonego endpointu
             var response = await Http.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {
