@@ -2,6 +2,7 @@
 @using BookingApp.Shared.ApiResponse
 @using BookingApp.Shared.DTOs.OfertaDto
 @using BookingApp.Shared.Models
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavManager
 @inject HttpClient Http
 
@@ -37,6 +38,7 @@
                         <h2 class="fw-bold mb-1">@nazwaHotelu</h2>
                         <p class="text-muted mb-0"><i class="bi bi-geo-alt-fill text-primary"></i> @Offer.Hotel?.Miejscowosc?.Nazwa</p>
                     </div>
+    
                     <div class="text-end">
                         <span class="badge bg-primary fs-5">
                             @gwiazdki <i class="bi bi-star-fill"></i>
@@ -136,12 +138,24 @@
                         </div>
                     }
 
-                    @* Przycisk odblokowuje się również dla poprawnie wpisanych dat ręcznych *@
-                    <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow"
-                            @onclick="HandleBooking"
-                            disabled="@(!czyMoznaRezerwowac())">
-                        REZERWUJ TERAZ
-                    </button>
+                    @* Natywny mechanizm warunkowy Blazora zależny od zalogowania *@
+                    <AuthorizeView>
+                        <Authorized>
+                            <button class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow"
+                                    @onclick="HandleBooking"
+                                    disabled="@(!czyMoznaRezerwowac())">
+                                REZERWUJ TERAZ
+                            </button>
+                        </Authorized>
+                        <NotAuthorized>
+                            <button class="btn btn-secondary w-100 py-3 fw-bold rounded-pill shadow" disabled>
+                                REZERWUJ TERAZ
+                            </button>
+                            <div class="alert alert-warning mt-3 small text-center p-2">
+                                <i class="bi bi-lock-fill"></i> Musisz się zalogować, aby dokonać rezerwacji.
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
                     
                     @if (!string.IsNullOrEmpty(komunikat))
                     {
@@ -242,7 +256,6 @@
         }
     }
 
-    private bool MoznaRezerwowac() => MoznaRezerwowac(); 
     private bool czyMoznaRezerwowac()
     {
         if (Osoby < 1) return false;
@@ -309,23 +322,18 @@
         border-bottom: 3px solid transparent;
     }
 
-        .custom-tabs .nav-link.active {
-            color: #003580;
-            border-bottom: 3px solid #febb02;
-            background: none;
-        }
+    .custom-tabs .nav-link.active {
+        color: #003580;
+        border-bottom: 3px solid #febb02;
+        background: none;
+    }
 
     .animate-fade-in {
         animation: fadeIn 0.3s;
     }
 
     @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
 </style>

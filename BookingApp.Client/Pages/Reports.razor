@@ -1,0 +1,513 @@
+﻿@page "/admin/reports"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.RaportDto
+@using BookingApp.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Pracownik,Administrator")]
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<div class="container mt-4 mb-5">
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaZakladka == "sales" ? "active text-primary" : "text-muted")" @onclick='() => PrzelaczZakladke("sales")'>
+                <i class="bi bi-cart-check-fill"></i> Zestawienie sprzedaży
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaZakladka == "popularity" ? "active text-warning" : "text-muted")" @onclick='() => PrzelaczZakladke("popularity")'>
+                <i class="bi bi-star-fill"></i> Popularność hoteli
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaZakladka == "financial" ? "active text-success" : "text-muted")" @onclick='() => PrzelaczZakladke("financial")'>
+                <i class="bi bi-cash-coin"></i> Analiza finansów i zysków
+            </button>
+        </li>
+    </ul>
+
+    <div class="card shadow-sm border-0 p-4 bg-white rounded">
+        <h3 class="fw-bold mb-3 @UstalKolorTekstuNaglowka()">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            @if (aktywnaZakladka == "sales")
+            {
+                <span>Raport Rezerwacji i Sprzedaży</span>
+            }
+            else if (aktywnaZakladka == "popularity")
+            {
+
+                <span>Raport Popularności Hoteli i Kierunków</span>
+            }
+            else
+            {
+
+                <span>Okresowy Raport Obrotów i Zysków</span>
+            }
+        </h3>
+        <p class="text-muted small">Dostosuj parametry wyszukiwania oraz zaznacz kolumny, aby wyeksportować idealne zestawienie finansowo-sprzedażowe.</p>
+        <hr />
+
+        <h5 class="fw-bold text-dark mb-3">1. Kryteria wyszukiwania i filtry</h5>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">Data utworzenia (Od):</label>
+                <input type="date" class="form-control form-control-sm" @bind="DataOd" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">Data utworzenia (Do):</label>
+                <input type="date" class="form-control form-control-sm" @bind="DataDo" />
+            </div>
+            @if (aktywnaZakladka == "sales")
+            {
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Status rezerwacji:</label>
+                    <select class="form-select form-select-sm" @bind="wybranyStatusString">
+                        <option value="Wszystkie">Wszystkie statusy</option>
+                        @foreach (var status in Enum.GetValues<Status>())
+                        {
+                            <option value="@status.ToString()">@status.ToString().Replace("_", " ")</option>
+                        }
+                    </select>
+                </div>
+            }
+            @if (aktywnaZakladka == "financial")
+            {
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Agregacja czasowa (Grupowanie):</label>
+                    <select class="form-select form-select-sm" @bind="financialRequest.Grupowanie">
+                        <option value="dzien">Dzień po dniu</option>
+                        <option value="miesiac">Miesiącami (Standard)</option>
+                        <option value="kwartal">Kwartalnie</option>
+                    </select>
+                </div>
+            }
+        </div>
+
+        <h5 class="fw-bold text-dark mb-2">2. Dobór pól do raportu (Kolumny)</h5>
+        
+        @if (aktywnaZakladka == "sales")
+        {
+            <div class="row bg-light p-3 rounded border g-3 mb-4 mx-1">
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colId" @bind="salesRequest.PokazId"><label class="form-check-label small" for="colId">ID Rezerwacji</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colData" @bind="salesRequest.PokazDataUtworzenia"><label class="form-check-label small" for="colData">Data Rezerwacji</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colKlient" @bind="salesRequest.PokazKlienta"><label class="form-check-label small" for="colKlient">Imię i Nazwisko</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colEmail" @bind="salesRequest.PokazEmail"><label class="form-check-label small" for="colEmail">Adres Email</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colHotel" @bind="salesRequest.PokazHotel"><label class="form-check-label small" for="colHotel">Nazwa Hotelu</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colMiejscowosc" @bind="salesRequest.PokazMiejscowosc"><label class="form-check-label small" for="colMiejscowosc">Miejscowość</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colOsoby" @bind="salesRequest.PokazLiczbaOsob"><label class="form-check-label small" for="colOsoby">Uczestnicy</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colKwota" @bind="salesRequest.PokazKwote"><label class="form-check-label small" for="colKwota">Kwota Całkowita</label></div></div>
+            </div>
+        }
+        else if (aktywnaZakladka == "popularity")
+        {
+            <div class="row bg-light p-3 rounded border g-3 mb-4 mx-1">
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pNazwa" @bind="popularityRequest.PokazNazwe"><label class="form-check-label small" for="pNazwa">Nazwa Hotelu</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pGwi" @bind="popularityRequest.PokazGwiazdki"><label class="form-check-label small" for="pGwi">Standard (Gwiazdki)</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pLok" @bind="popularityRequest.PokazLokalizacje"><label class="form-check-label small" for="pLok">Miejscowość</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pRez" @bind="popularityRequest.PokazLiczbeRezerwacji"><label class="form-check-label small" for="pRez">Suma Rezerwacji</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pUcz" @bind="popularityRequest.PokazSumeUczestnikow"><label class="form-check-label small" for="pUcz">Gacie gości</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pPrz" @bind="popularityRequest.PokazPrzychod"><label class="form-check-label small" for="pPrz">Generowany Przychód</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pSre" @bind="popularityRequest.PokazSredniaWartosc"><label class="form-check-label small" for="pSre">Śr. Wartość Koszyka</label></div></div>
+            </div>
+        }
+        else
+        {
+            <div class="row bg-light p-3 rounded border g-3 mb-4 mx-1">
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fOkr" @bind="financialRequest.PokazOkres"><label class="form-check-label small" for="fOkr">Okres Rozliczeniowy</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fTra" @bind="financialRequest.PokazLiczbeTransakcji"><label class="form-check-label small" for="fTra">Liczba transakcji</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fUcz" @bind="financialRequest.PokazSumeUczestnikow"><label class="form-check-label small" for="fUcz">Liczba gości</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fDop" @bind="financialRequest.PokazSumeDoplat"><label class="form-check-label small" for="fDop">Suma dopłat (Dodatki)</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fPgl" @bind="financialRequest.PokazPrzychodGlowny"><label class="form-check-label small" for="fPgl">Przychód główny</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fPca" @bind="financialRequest.PokazPrzychodCalkowity"><label class="form-check-label small" for="fPca">Przychód całkowity</label></div></div>
+                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fSre" @bind="financialRequest.PokazSredniaWartosc"><label class="form-check-label small" for="fSre">Średnia transakcja</label></div></div>
+            </div>
+        }
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary px-4 fw-bold rounded-pill btn-sm" @onclick="ObslugaGenerowaniaPodgladu" disabled="@ladowanie">
+                @if (ladowanie)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                <i class="bi bi-eye-fill"></i> Wyświetl podgląd
+            </button>
+            <button class="btn @UstalStylPrzycisku() px-4 fw-bold rounded-pill btn-sm shadow-sm" @onclick="ObslugaPobieraniaPdf" disabled="@ladowanie">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Generuj plik PDF
+            </button>
+        </div>
+    </div>
+
+    @if (aktywnaZakladka == "sales" && wierszeSalesPodgladu != null)
+    {
+        <div class="card shadow-sm border-0 p-4 bg-white rounded mt-4">
+            <h5 class="fw-bold text-dark mb-3">Wyniki podglądu rezerwacji</h5>
+            @if (!wierszeSalesPodgladu.Any())
+            {
+                <div class="alert alert-info small text-center mb-0">Brak danych.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small border">
+                        <thead class="table-light">
+                            <tr>
+                                @if (salesRequest.PokazId)
+                                {
+                                    <th>ID</th>
+                                }
+                                @if (salesRequest.PokazDataUtworzenia)
+                                {
+                                    <th>Data</th>
+                                }
+                                @if (salesRequest.PokazKlienta)
+                                {
+                                    <th>Klient</th>
+                                }
+                                @if (salesRequest.PokazEmail)
+                                {
+                                    <th>Email</th>
+                                }
+                                @if (salesRequest.PokazHotel)
+                                {
+                                    <th>Hotel</th>
+                                }
+                                @if (salesRequest.PokazMiejscowosc)
+                                {
+                                    <th>Miejscowość</th>
+                                }
+                                @if (salesRequest.PokazLiczbaOsob)
+                                {
+                                    <th class="text-end">Osoby</th>
+                                }
+                                @if (salesRequest.PokazKwote)
+                                {
+                                    <th class="text-end">Suma</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in wierszeSalesPodgladu)
+                            {
+                                <tr>
+                                    @if (salesRequest.PokazId)
+                                    {
+                                        <td>@row.Id</td>
+                                    }
+                                    @if (salesRequest.PokazDataUtworzenia)
+                                    {
+                                        <td>@row.DataUtworzenia.ToString("dd.MM.yyyy")</td>
+                                    }
+                                    @if (salesRequest.PokazKlienta)
+                                    {
+                                        <td>@row.KlientNazwa</td>
+                                    }
+                                    @if (salesRequest.PokazEmail)
+                                    {
+                                        <td>@row.KlientEmail</td>
+                                    }
+                                    @if (salesRequest.PokazHotel)
+                                    {
+                                        <td>@row.HotelNazwa</td>
+                                    }
+                                    @if (salesRequest.PokazMiejscowosc)
+                                    {
+                                        <td>@row.MiejscowoscNazwa</td>
+                                    }
+                                    @if (salesRequest.PokazLiczbaOsob)
+                                    {
+                                        <td class="text-end">@row.LiczbaOsob</td>
+                                    }
+                                    @if (salesRequest.PokazKwote)
+                                    {
+                                        <td class="text-end fw-bold text-primary">@row.KwotaCalkowita.ToString("C2")</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    @if (aktywnaZakladka == "popularity" && wierszePopularityPodgladu != null)
+    {
+        <div class="card shadow-sm border-0 p-4 bg-white rounded mt-4">
+            <h5 class="fw-bold text-dark mb-3">Wyniki podglądu popularności (Ranking)</h5>
+            @if (!wierszePopularityPodgladu.Any())
+            {
+                <div class="alert alert-info small text-center mb-0">Brak danych.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small border">
+                        <thead class="table-light">
+                            <tr>
+                                @if (popularityRequest.PokazNazwe)
+                                {
+                                    <th>Nazwa Hotelu</th>
+                                }
+                                @if (popularityRequest.PokazGwiazdki)
+                                {
+                                    <th>Standard</th>
+                                }
+                                @if (popularityRequest.PokazLokalizacje)
+                                {
+                                    <th>Miejscowość</th>
+                                }
+                                @if (popularityRequest.PokazLiczbeRezerwacji)
+                                {
+                                    <th class="text-end">Suma Rezerwacji</th>
+                                }
+                                @if (popularityRequest.PokazSumeUczestnikow)
+                                {
+                                    <th class="text-end">Łącznie gości</th>
+                                }
+                                @if (popularityRequest.PokazPrzychod)
+                                {
+                                    <th class="text-end">Łączny obrót</th>
+                                }
+                                @if (popularityRequest.PokazSredniaWartosc)
+                                {
+                                    <th class="text-end">Śr. Rezerwacja</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in wierszePopularityPodgladu)
+                            {
+                                <tr>
+                                    @if (popularityRequest.PokazNazwe)
+                                    {
+                                        <td class="fw-bold">@row.HotelNazwa</td>
+                                    }
+                                    @if (popularityRequest.PokazGwiazdki)
+                                    {
+                                        <td>@row.LiczbaGwiazdek *</td>
+                                    }
+                                    @if (popularityRequest.PokazLokalizacje)
+                                    {
+                                        <td>@row.Lokalizacja</td>
+                                    }
+                                    @if (popularityRequest.PokazLiczbeRezerwacji)
+                                    {
+                                        <td class="text-end">@row.LiczbaRezerwacji</td>
+                                    }
+                                    @if (popularityRequest.PokazSumeUczestnikow)
+                                    {
+                                        <td class="text-end">@row.SumaUczestnikow</td>
+                                    }
+                                    @if (popularityRequest.PokazPrzychod)
+                                    {
+                                        <td class="text-end fw-bold text-warning">@row.GenerowanyPrzychod.ToString("C2")</td>
+                                    }
+                                    @if (popularityRequest.PokazSredniaWartosc)
+                                    {
+                                        <td class="text-end text-muted">@row.SredniaWartosc.ToString("C2")</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    @if (aktywnaZakladka == "financial" && wierszeFinancialPodgladu != null)
+    {
+        <div class="card shadow-sm border-0 p-4 bg-white rounded mt-4">
+            <h5 class="fw-bold text-dark mb-3">Wyniki okresowej analizy finansów</h5>
+            @if (!wierszeFinancialPodgladu.Any())
+            {
+                <div class="alert alert-info small text-center mb-0">Brak danych finansowych w podanym zakresie dat.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small border">
+                        <thead class="table-dark">
+                            <tr>
+                                @if (financialRequest.PokazOkres)
+                                {
+                                    <th>Okres rozliczeniowy</th>
+                                }
+                                @if (financialRequest.PokazLiczbeTransakcji)
+                                {
+                                    <th class="text-end">Liczba transakcji</th>
+                                }
+                                @if (financialRequest.PokazSumeUczestnikow)
+                                {
+                                    <th class="text-end">Suma gości</th>
+                                }
+                                @if (financialRequest.PokazSumeDoplat)
+                                {
+                                    <th class="text-end">Suma dopłat</th>
+                                }
+                                @if (financialRequest.PokazPrzychodGlowny)
+                                {
+                                    <th class="text-end">Przychód główny</th>
+                                }
+                                @if (financialRequest.PokazPrzychodCalkowity)
+                                {
+                                    <th class="text-end">Obrót łączny</th>
+                                }
+                                @if (financialRequest.PokazSredniaWartosc)
+                                {
+                                    <th class="text-end">Śr. Transakcja</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in wierszeFinancialPodgladu)
+                            {
+                                <tr>
+                                    @if (financialRequest.PokazOkres)
+                                    {
+                                        <td class="fw-bold text-secondary">@row.Okres</td>
+                                    }
+                                    @if (financialRequest.PokazLiczbeTransakcji)
+                                    {
+                                        <td class="text-end">@row.LiczbaTransakcji</td>
+                                    }
+                                    @if (financialRequest.PokazSumeUczestnikow)
+                                    {
+                                        <td class="text-end">@row.SumaUczestnikow</td>
+                                    }
+                                    @if (financialRequest.PokazSumeDoplat)
+                                    {
+                                        <td class="text-end text-muted">@row.SumaDoplat.ToString("C2")</td>
+                                    }
+                                    @if (financialRequest.PokazPrzychodGlowny)
+                                    {
+                                        <td class="text-end">@row.PrzychodGlowny.ToString("C2")</td>
+                                    }
+                                    @if (financialRequest.PokazPrzychodCalkowity)
+                                    {
+                                        <td class="text-end fw-bold text-success">@row.PrzychodCalkowita.ToString("C2")</td>
+                                    }
+                                    @if (financialRequest.PokazSredniaWartosc)
+                                    {
+                                        <td class="text-end text-muted">@row.SredniaWartosc.ToString("C2")</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string aktywnaZakladka = "sales";
+    private bool ladowanie = false;
+
+    private DateTime? DataOd;
+    private DateTime? DataDo;
+    private string wybranyStatusString = "Wszystkie";
+
+    private ReportRequestDto salesRequest = new();
+    private PopularityReportRequestDto popularityRequest = new();
+    private FinancialReportRequestDto financialRequest = new();
+
+    private List<ReportRowDto>? wierszeSalesPodgladu;
+    private List<PopularityReportRowDto>? wierszePopularityPodgladu;
+    private List<FinancialReportRowDto>? wierszeFinancialPodgladu;
+
+    private void PrzelaczZakladke(string zakladka)
+    {
+        aktywnaZakladka = zakladka;
+        wierszeSalesPodgladu = null;
+        wierszePopularityPodgladu = null;
+        wierszeFinancialPodgladu = null;
+    }
+
+    private string UstalKolorTekstuNaglowka() =>
+        aktywnaZakladka == "sales" ? "text-primary" : (aktywnaZakladka == "popularity" ? "text-warning" : "text-success");
+
+    private string UstalStylPrzycisku() =>
+        aktywnaZakladka == "sales" ? "btn-primary" : (aktywnaZakladka == "popularity" ? "btn-warning text-dark" : "btn-success");
+
+    private void SynchronizujDaty()
+    {
+        salesRequest.DataOd = DataOd; salesRequest.DataDo = DataDo;
+        popularityRequest.DataOd = DataOd; popularityRequest.DataDo = DataDo;
+        financialRequest.DataOd = DataOd; financialRequest.DataDo = DataDo;
+
+        if (wybranyStatusString == "Wszystkie") salesRequest.StatusRezerwacji = null;
+        else if (Enum.TryParse<Status>(wybranyStatusString, out var wynik)) salesRequest.StatusRezerwacji = wynik;
+    }
+
+    private async Task ObslugaGenerowaniaPodgladu()
+    {
+        ladowanie = true;
+        SynchronizujDaty();
+
+        if (aktywnaZakladka == "sales")
+        {
+            var res = await Http.PostAsJsonAsync("api/raporty/preview", salesRequest);
+            if (res.IsSuccessStatusCode)
+            {
+                var apiResult = await res.Content.ReadFromJsonAsync<ApiResponse<List<ReportRowDto>>>();
+                wierszeSalesPodgladu = apiResult?.Dane;
+            }
+        }
+        else if (aktywnaZakladka == "popularity")
+        {
+            var res = await Http.PostAsJsonAsync("api/raporty/popularity/preview", popularityRequest);
+            if (res.IsSuccessStatusCode)
+            {
+                var apiResult = await res.Content.ReadFromJsonAsync<ApiResponse<List<PopularityReportRowDto>>>();
+                wierszePopularityPodgladu = apiResult?.Dane;
+            }
+        }
+        else
+        {
+            var res = await Http.PostAsJsonAsync("api/raporty/financial/preview", financialRequest);
+            if (res.IsSuccessStatusCode)
+            {
+                var apiResult = await res.Content.ReadFromJsonAsync<ApiResponse<List<FinancialReportRowDto>>>();
+                wierszeFinancialPodgladu = apiResult?.Dane;
+            }
+        }
+        ladowanie = false;
+    }
+
+    private async Task ObslugaPobieraniaPdf()
+    {
+        ladowanie = true;
+        SynchronizujDaty();
+
+        if (aktywnaZakladka == "sales")
+        {
+            var res = await Http.PostAsJsonAsync("api/raporty/pdf", salesRequest);
+            if (res.IsSuccessStatusCode)
+            {
+                var pdfBytes = await res.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("PrzegladarkaPobierzPlik", $"Raport_Sprzedazy_{DateTime.Now:yyyyMMdd}.pdf", Convert.ToBase64String(pdfBytes));
+            }
+        }
+        else if (aktywnaZakladka == "popularity")
+        {
+            var res = await Http.PostAsJsonAsync("api/raporty/popularity/pdf", popularityRequest);
+            if (res.IsSuccessStatusCode)
+            {
+                var pdfBytes = await res.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("PrzegladarkaPobierzPlik", $"Ranking_Popularnosci_{DateTime.Now:yyyyMMdd}.pdf", Convert.ToBase64String(pdfBytes));
+            }
+        }
+        else
+        {
+            var res = await Http.PostAsJsonAsync("api/raporty/financial/pdf", financialRequest);
+            if (res.IsSuccessStatusCode)
+            {
+                var pdfBytes = await res.Content.ReadAsByteArrayAsync();
+                await JSRuntime.InvokeVoidAsync("PrzegladarkaPobierzPlik", $"Analiza_Finansowa_{DateTime.Now:yyyyMMdd}.pdf", Convert.ToBase64String(pdfBytes));
+            }
+        }
+        ladowanie = false;
+    }
+}

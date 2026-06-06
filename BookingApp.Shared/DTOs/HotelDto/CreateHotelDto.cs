@@ -13,5 +13,6 @@ namespace BookingApp.Shared.DTOs.HotelDto
         public int LiczbaGwiazdek {  get; set; }
         public int MiejscowoscId { get; set; }
         public Adres Adres { get; set; } = new Adres();
+        public string UrlZdjecia { get; set; } = string.Empty;
     }
 }
