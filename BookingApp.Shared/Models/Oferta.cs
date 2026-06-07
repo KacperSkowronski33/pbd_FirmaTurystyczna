@@ -14,5 +14,6 @@ namespace BookingApp.Shared.Models
         public Hotel Hotel { get; set; }
         public TypWyzywienia TypWyzywienia { get; set; }
         public ICollection<TerminCena> TerminyCeny { get; set; } = new List<TerminCena>();
+        public bool CzyAktywna { get; set; } = true;
     }
 }

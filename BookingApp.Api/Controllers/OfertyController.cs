@@ -4,6 +4,7 @@ using BookingApp.Shared.DTOs.HotelDto;
 using BookingApp.Shared.DTOs.OfertaDto;
 using BookingApp.Shared.DTOs.RezerwacjaDto;
 using BookingApp.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,12 +23,18 @@ namespace BookingApp.Api.Controllers
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<ReadOfertaDto>>>> GetOferta(
-    [FromQuery] string? cel,
-    [FromQuery] decimal? maxCena,
-    [FromQuery] string? gwiazdki,
-    [FromQuery] int? typWyzywieniaId)
+            [FromQuery] string? cel,
+            [FromQuery] decimal? maxCena,
+            [FromQuery] string? gwiazdki,
+            [FromQuery] int? typWyzywieniaId,
+            [FromQuery] bool tylkoAktywne = true) 
         {
             var query = _context.Oferty.AsNoTracking();
+
+            if (tylkoAktywne)
+            {
+                query = query.Where(o => o.CzyAktywna);
+            }
 
             if (!string.IsNullOrEmpty(cel))
             {
@@ -55,7 +62,8 @@ namespace BookingApp.Api.Controllers
                     HotelId = o.HotelId,
                     TypWyzywieniaId = o.TypWyzywieniaId,
                     TypWyzywienia = o.TypWyzywienia,
-                    TerminyCeny = o.TerminyCeny.ToList(), 
+                    TerminyCeny = o.TerminyCeny.ToList(),
+                    CzyAktywna = o.CzyAktywna, 
                     Hotel = new Hotel
                     {
                         Id = o.Hotel.Id,
@@ -83,14 +91,15 @@ namespace BookingApp.Api.Controllers
                     TypWyzywieniaId = o.TypWyzywieniaId,
                     TypWyzywienia = o.TypWyzywienia,
                     TerminyCeny = o.TerminyCeny.ToList(),
+                    CzyAktywna = o.CzyAktywna, 
                     Hotel = new Hotel
                     {
                         Id = o.Hotel.Id,
                         NazwaHotelu = o.Hotel.NazwaHotelu,
                         LiczbaGwiazdek = o.Hotel.LiczbaGwiazdek,
                         MiejscowoscId = o.Hotel.MiejscowoscId,
-                        Miejscowosc = o.Hotel.Miejscowosc, 
-                        ZdjeciaHotelu = o.Hotel.ZdjeciaHotelu.ToList() 
+                        Miejscowosc = o.Hotel.Miejscowosc,
+                        ZdjeciaHotelu = o.Hotel.ZdjeciaHotelu.ToList()
                     }
                 })
                 .FirstOrDefaultAsync();
@@ -106,37 +115,55 @@ namespace BookingApp.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<ApiResponse<Oferta>>> PostOferta(CreateOfertaDto o)
         {
+            var hotelIstnieje = await _context.Hotele.AnyAsync(h => h.Id == o.HotelId);
+            if (!hotelIstnieje) return BadRequest(ApiResponse.Error($"Wybrany hotel o ID {o.HotelId} nie istnieje w bazie."));
+
+            var wyzywienieIstnieje = await _context.TypyWyzywienia.AnyAsync(w => w.Id == o.TypWyzywieniaId);
+            if (!wyzywienieIstnieje) return BadRequest(ApiResponse.Error($"Wybrany typ wyżywienia o ID {o.TypWyzywieniaId} nie istnieje w bazie."));
+
             var nowy = new Oferta
             {
                 HotelId = o.HotelId,
                 TypWyzywieniaId = o.TypWyzywieniaId,
-                Hotel = o.Hotel,
-                TypWyzywienia = o.TypWyzywienia,
-                TerminyCeny = o.TerminyCeny,
+                CzyAktywna = true, 
+                TerminyCeny = o.TerminyCeny.Select(t => new TerminCena
+                {
+                    DataOd = t.DataOd,
+                    DataDo = t.DataDo,
+                    CenaPodstawowa = t.CenaPodstawowa
+                }).ToList()
             };
+
             _context.Oferty.Add(nowy);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetOferta), new { id = nowy.Id }, ApiResponse<Oferta>.Ok(nowy, "Oferta została dodana"));
-        }
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutOferta(int id, UpdateOfertaDto o)
-        {
-            var ofertyBaza = await _context.Oferty.FindAsync(id);
-            if (ofertyBaza == null)
+
+            foreach (var termin in nowy.TerminyCeny)
             {
-                return NotFound(ApiResponse.Error($"Oferta o id {id} nie istnieje w bazie"));
+                termin.Oferta = null!;
             }
-            ofertyBaza.HotelId = o.HotelId;
-            ofertyBaza.TypWyzywieniaId = o.TypWyzywieniaId;
-            ofertyBaza.Hotel = o.Hotel;
-            ofertyBaza.TypWyzywienia = o.TypWyzywienia;
-            ofertyBaza.TerminyCeny = o.TerminyCeny;
-            await _context.SaveChangesAsync();
-            return Ok(ApiResponse.Ok("Oferta została zaktualizowana"));
+
+            return Ok(ApiResponse<Oferta>.Ok(nowy, "Oferta została dodana"));
         }
 
+        [HttpPut("{id}/toggle-status")]
+        [Authorize(Roles = "Pracownik,Administrator")]
+        public async Task<IActionResult> ToggleActiveStatus(int id)
+        {
+            var oferta = await _context.Oferty.FindAsync(id);
+            if (oferta == null)
+            {
+                return NotFound(ApiResponse.Error($"Oferta o id {id} nie istnieje w bazie."));
+            }
+
+            oferta.CzyAktywna = !oferta.CzyAktywna; 
+            await _context.SaveChangesAsync();
+
+            string stan = oferta.CzyAktywna ? "widoczna dla klientów" : "ukryta (dostępna w raportach)";
+            return Ok(ApiResponse.Ok($"Status oferty został zmieniony. Obecnie jest: {stan}."));
+        }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Pracownik,Administrator")]
         public async Task<IActionResult> DeleteOferta(int id)
         {
             var Oferta = await _context.Oferty.FindAsync(id);
@@ -146,7 +173,7 @@ namespace BookingApp.Api.Controllers
             }
             _context.Oferty.Remove(Oferta);
             await _context.SaveChangesAsync();
-            return Ok(ApiResponse.Ok("Oferta została usunięta"));
+            return Ok(ApiResponse.Ok("Oferta została trwale usunięta z bazy danych"));
         }
     }
 }

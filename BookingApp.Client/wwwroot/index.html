@@ -27,6 +27,18 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <script>
+        window.PrzegladarkaPobierzPlik = (nazwaPliku, base64Dane) => {
+            const link = document.createElement('a');
+            link.download = nazwaPliku;
+            link.href = "data:application/pdf;base64," + base64Dane;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
 </body>
 
 </html>

@@ -14,6 +14,7 @@ namespace BookingApp.Shared.DTOs.OfertaDto
         public int TypWyzywieniaId { get; set; }
         public Hotel Hotel { get; set; }
         public TypWyzywienia TypWyzywienia { get; set; }
+        public bool CzyAktywna { get; set; }
         public ICollection<TerminCena> TerminyCeny { get; set; } = new List<TerminCena>();
     }
 }

@@ -1,0 +1,236 @@
+﻿@page "/admin/hotels/create"
+@using BookingApp.Shared.ApiResponse
+@using BookingApp.Shared.DTOs.HotelDto
+@using BookingApp.Shared.DTOs.Lookups
+@using BookingApp.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Pracownik,Administrator")]
+@inject HttpClient Http
+
+<div class="container mt-4 mb-5" style="max-width: 750px;">
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaTab == "hotel" ? "active text-primary" : "text-muted")" @onclick='() => aktywnaTab = "hotel"'>
+                <i class="bi bi-building-add"></i> Dodaj Hotel
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaTab == "geo" ? "active text-success" : "text-muted")" @onclick='() => aktywnaTab = "geo"'>
+                <i class="bi bi-globe-europe-africa"></i> Dodaj Państwo / Miejscowość
+            </button>
+        </li>
+    </ul>
+
+    <div class="card shadow-sm border-0 p-4 bg-white rounded">
+        @if (aktywnaTab == "hotel")
+        {
+            <h3 class="fw-bold text-primary mb-3"><i class="bi bi-building"></i> Kreator Nowego Hotelu</h3>
+            <p class="text-muted small">Wprowadź specyfikację obiektu, kompletne dane adresowe oraz link do zdjęcia.</p>
+            <hr />
+
+            @if (!string.IsNullOrEmpty(sukcesHotel))
+            {
+                <div class="alert alert-success small p-2 text-center">@sukcesHotel</div>
+            }
+            @if (!string.IsNullOrEmpty(bladHotel))
+            {
+                <div class="alert alert-danger small p-2 text-center">@bladHotel</div>
+            }
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">Nazwa obiektu hotelowego:</label>
+                <input type="text" class="form-control" placeholder="np. Sun & Snow Resort" @bind="hotelDto.NazwaHotelu" />
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Standard (Gwiazdki):</label>
+                    <select class="form-select" @bind="hotelDto.LiczbaGwiazdek">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <option value="@i">@i *</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Miejscowość:</label>
+                    <select class="form-select" @bind="hotelDto.MiejscowoscId">
+                        <option value="0">-- Wybierz miejscowość --</option>
+                        @if (miejscowosci != null)
+                        {
+                            @foreach (var m in miejscowosci.OrderBy(x => x.Nazwa))
+                            {
+                                <option value="@m.Id">@m.Nazwa</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <h5 class="fw-bold small text-secondary mb-3 text-uppercase mt-4">Adres korespondencyjny</h5>
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <label class="form-label small fw-bold text-muted">Ulica:</label>
+                    <input type="text" class="form-control form-control-sm" @bind="hotelDto.Adres.NazwaUlicy" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Budynek / Lokal:</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" placeholder="Bud." @bind="hotelDto.Adres.NumerBudynku" />
+                        <input type="text" class="form-control" placeholder="Lok." @bind="hotelDto.Adres.NumerLokalu" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Kod pocztowy:</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="np. 80-110" @bind="hotelDto.Adres.KodPocztowy" />
+                </div>
+            </div>
+
+            <h5 class="fw-bold small text-secondary mb-3 text-uppercase mt-4">Multimedia</h5>
+            <div class="mb-4">
+                <label class="form-label small fw-bold text-muted">Adres URL zdjęcia reprezentacyjnego:</label>
+                <input type="text" class="form-control form-control-sm" placeholder="https://images.unsplash.com/..." @bind="hotelDto.UrlZdjecia" />
+            </div>
+
+            <button class="btn btn-primary w-100 py-2.5 fw-bold rounded-pill shadow-sm" @onclick="ZapiszHotel" disabled="@ladowanie">
+                <i class="bi bi-cloud-arrow-up-fill"></i> Zapisz hotel
+            </button>
+        }
+        else
+        {
+            <h3 class="fw-bold text-success mb-3"><i class="bi bi-globe"></i> Zarządzanie Słownikami Geograficznymi</h3>
+            <p class="text-muted small">Dodawaj nowe kraje oraz przypisuj do nich miejscowości wypoczynkowe.</p>
+            <hr />
+
+            @if (!string.IsNullOrEmpty(sukcesGeo))
+            {
+                <div class="alert alert-success small p-2 text-center">@sukcesGeo</div>
+            }
+            @if (!string.IsNullOrEmpty(bladGeo))
+            {
+                <div class="alert alert-danger small p-2 text-center">@bladGeo</div>
+            }
+
+            <div class="row g-4">
+                <div class="col-md-6 border-end">
+                    <h5 class="fw-bold text-dark small text-uppercase mb-3"><i class="bi bi-flag-fill text-danger"></i> Nowe Państwo</h5>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Nazwa państwa (Kraj):</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="np. Grecja" @bind="nowyKrajNazwa" />
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" @onclick="ZapiszKraj" disabled="@ladowanie">
+                        <i class="bi bi-plus-lg"></i> Utwórz państwo
+                    </button>
+                </div>
+
+                <div class="col-md-6">
+                    <h5 class="fw-bold text-dark small text-uppercase mb-3"><i class="bi bi-geo-alt-fill text-primary"></i> Nowa Miejscowość</h5>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Państwo nadrzędne:</label>
+                        <select class="form-select form-select-sm" @bind="nowaMiejscowoscKrajId">
+                            <option value="0">-- Wybierz kraj --</option>
+                            @if (kraje != null)
+                            {
+                                @foreach (var k in kraje.OrderBy(x => x.Nazwa))
+                                {
+                                    <option value="@k.Id">@k.Nazwa</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Nazwa miejscowości / regionu:</label>
+                        <input type="text" class="form-control form-control-sm" placeholder="np. Kreta" @bind="nowaMiejscowoscNazwa" />
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" @onclick="ZapiszMiejscowosc" disabled="@ladowanie">
+                        <i class="bi bi-plus-lg"></i> Utwórz miejscowość
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string aktywnaTab = "hotel";
+    private bool ladowanie = false;
+
+    private CreateHotelDto hotelDto = new() { LiczbaGwiazdek = 3 };
+    private List<MiejscowoscDto>? miejscowosci;
+    private string sukcesHotel = "";
+    private string bladHotel = "";
+
+    private List<KrajDto>? kraje;
+    private string nowyKrajNazwa = "";
+    private string nowaMiejscowoscNazwa = "";
+    private int nowaMiejscowoscKrajId = 0;
+    private string sukcesGeo = "";
+    private string bladGeo = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await OdswiezSlowniki();
+    }
+
+    private async Task OdswiezSlowniki()
+    {
+        var resMiejscowosci = await Http.GetFromJsonAsync<ApiResponse<List<MiejscowoscDto>>>("api/lookups/miejscowosci");
+        if (resMiejscowosci != null && resMiejscowosci.Sukces) miejscowosci = resMiejscowosci.Dane;
+
+        var resKraje = await Http.GetFromJsonAsync<ApiResponse<List<KrajDto>>>("api/lookups/kraje");
+        if (resKraje != null && resKraje.Sukces) kraje = resKraje.Dane;
+    }
+
+    private async Task ZapiszHotel()
+    {
+        sukcesHotel = ""; bladHotel = "";
+        if (string.IsNullOrWhiteSpace(hotelDto.NazwaHotelu)) { bladHotel = "Nazwa hotelu jest wymagana."; return; }
+        if (hotelDto.MiejscowoscId <= 0) { bladHotel = "Wybierz miejscowość z listy."; return; }
+        if (string.IsNullOrWhiteSpace(hotelDto.Adres.NazwaUlicy) || string.IsNullOrWhiteSpace(hotelDto.Adres.NumerBudynku)) { bladHotel = "Ulica i numer są wymagane."; return; }
+
+        ladowanie = true;
+        var res = await Http.PostAsJsonAsync("api/hotele", hotelDto);
+        if (res.IsSuccessStatusCode)
+        {
+            sukcesHotel = "Hotel oraz zdjęcie zostały pomyślnie zapisane.";
+            hotelDto = new CreateHotelDto { LiczbaGwiazdek = 3 };
+        }
+        else { bladHotel = "Wystąpił błąd podczas zapisu hotelu."; }
+        ladowanie = false;
+    }
+
+    private async Task ZapiszKraj()
+    {
+        sukcesGeo = ""; bladGeo = "";
+        if (string.IsNullOrWhiteSpace(nowyKrajNazwa)) { bladGeo = "Nazwa państwa nie może być pusta."; return; }
+
+        ladowanie = true;
+        var res = await Http.PostAsJsonAsync("api/lookups/kraje", new { Nazwa = nowyKrajNazwa });
+        if (res.IsSuccessStatusCode)
+        {
+            sukcesGeo = $"Kraj '{nowyKrajNazwa}' został pomyślnie dodany.";
+            nowyKrajNazwa = "";
+            await OdswiezSlowniki();
+        }
+        else { bladGeo = "Wystąpił błąd zapisu kraju."; }
+        ladowanie = false;
+    }
+
+    private async Task ZapiszMiejscowosc()
+    {
+        sukcesGeo = ""; bladGeo = "";
+        if (nowaMiejscowoscKrajId <= 0) { bladGeo = "Wybierz państwo nadrzędne."; return; }
+        if (string.IsNullOrWhiteSpace(nowaMiejscowoscNazwa)) { bladGeo = "Nazwa miejscowości nie może być pusta."; return; }
+
+        ladowanie = true;
+        var res = await Http.PostAsJsonAsync("api/lookups/miejscowosci", new { Nazwa = nowaMiejscowoscNazwa, KrajId = nowaMiejscowoscKrajId });
+        if (res.IsSuccessStatusCode)
+        {
+            sukcesGeo = $"Miejscowość '{nowaMiejscowoscNazwa}' została utworzona.";
+            nowaMiejscowoscNazwa = "";
+            await OdswiezSlowniki();
+        }
+        else { bladGeo = "Wystąpił błąd zapisu miejscowości."; }
+        ladowanie = false;
+    }
+}

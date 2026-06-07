@@ -1,9 +1,11 @@
 ﻿@page "/login"
 @using BookingApp.Shared.ApiResponse
 @using BookingApp.Shared.DTOs.Auth
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 @inject NavigationManager NavManager
 @inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -43,11 +45,13 @@
         if (response.IsSuccessStatusCode)
         {
             var result = await response.Content.ReadFromJsonAsync<ApiResponse<LoginResultDto>>();
-            
             if (result != null && result.Sukces && result.Dane != null)
             {
                 await JSRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", result.Dane.Token);
-                NavManager.NavigateTo("/", forceLoad: true);
+                
+                ((CustomAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(result.Dane.Token);
+                
+                NavManager.NavigateTo("/");
             }
             else
             {

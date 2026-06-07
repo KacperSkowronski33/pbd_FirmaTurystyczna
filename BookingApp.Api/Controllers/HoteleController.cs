@@ -44,10 +44,13 @@ namespace BookingApp.Api.Controllers
                 LiczbaGwiazdek = dto.LiczbaGwiazdek,
                 MiejscowoscId = dto.MiejscowoscId,
                 Adres = dto.Adres,
+                ZdjeciaHotelu = !string.IsNullOrWhiteSpace(dto.UrlZdjecia)
+                    ? new List<ZdjecieHotelu> { new ZdjecieHotelu { UrlZdjecia = dto.UrlZdjecia } }
+                    : new List<ZdjecieHotelu>()
             };
             _context.Hotele.Add(nowy);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetHotele), new { id = nowy.Id }, ApiResponse<Hotel>.Ok(nowy, "Hotel został dodany"));
+            return CreatedAtAction(nameof(GetHotele), new { id = nowy.Id }, ApiResponse<Hotel>.Ok(nowy, "Hotel został pomyślnie dodany"));
         }
 
         [HttpPut("{id}")]

@@ -11,8 +11,13 @@ namespace BookingApp.Shared.DTOs.OfertaDto
     {
         public int HotelId { get; set; }
         public int TypWyzywieniaId { get; set; }
-        public Hotel Hotel { get; set; }
-        public TypWyzywienia TypWyzywienia { get; set; }
-        public ICollection<TerminCena> TerminyCeny { get; set; } = new List<TerminCena>();
+        public List<CreateTerminCenaDto> TerminyCeny { get; set; } = new List<CreateTerminCenaDto>();
+    }
+
+    public class CreateTerminCenaDto
+    {
+        public DateTime DataOd { get; set; }
+        public DateTime DataDo { get; set; }
+        public decimal CenaPodstawowa { get; set; }
     }
 }

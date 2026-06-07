@@ -1,0 +1,302 @@
+﻿@page "/admin/offers/create"
+
+@using BookingApp.Shared.ApiResponse
+
+@using BookingApp.Shared.DTOs.HotelDto
+
+@using BookingApp.Shared.DTOs.OfertaDto
+
+@using BookingApp.Shared.Models
+
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Roles = "Pracownik,Administrator")]
+
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+
+<div class="container mt-4 mb-5" style="max-width: 950px;">
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaTab == "create" ? "active text-success" : "text-muted")" @onclick='() => PrzelaczZakladke("create")'>
+                <i class="bi bi-palm-fill"></i> Kreator Nowej Oferty
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold @(aktywnaTab == "manage" ? "active text-primary" : "text-muted")" @onclick='() => PrzelaczZakladke("manage")'>
+                <i class="bi bi-sliders"></i> Zarządzaj i Ukrywaj Oferty
+            </button>
+        </li>
+    </ul>
+
+    <div class="card shadow-sm border-0 p-4 bg-white rounded">
+        @if (aktywnaTab == "create")
+        {
+            <h3 class="fw-bold text-success mb-3"><i class="bi bi-plus-circle-fill"></i> Publikacja Nowej Oferty Wakacyjnej</h3>
+            <p class="text-muted small">Wybierz zarejestrowany hotel, standard wyżywienia i wyklikaj harmonogram turnusów cenowych.</p>
+            <hr />
+
+            @if (!string.IsNullOrEmpty(komunikatSukcesu))
+            {
+                <div class="alert alert-success small p-2 text-center">@komunikatSukcesu</div>
+            }
+            @if (!string.IsNullOrEmpty(komunikatBledu))
+            {
+                <div class="alert alert-danger small p-2 text-center">@komunikatBledu</div>
+            }
+
+            <h5 class="fw-bold small text-secondary mb-3 text-uppercase">1. Relacje słownikowe</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Wybierz placówkę hotelową:</label>
+                    <select class="form-select" @bind="ofertaDto.HotelId">
+                        <option value="0">-- Wybierz hotel --</option>
+                        @if (hotele != null)
+                        {
+                            @foreach (var h in hunde) 
+                            {
+                                <option value="@h.Id">@h.NazwaHotelu (@h.NazwaMiejscowosci)</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-muted">Standard wyżywienia:</label>
+                    <select class="form-select" @bind="ofertaDto.TypWyzywieniaId">
+                        <option value="0">-- Wybierz wyżywienie --</option>
+                        @if (typyWyzywienia != null)
+                        {
+                            @foreach (var w in typyWyzywienia)
+                            {
+                                <option value="@w.Id">@w.NazwaWyzywienia</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold small text-secondary mb-0 text-uppercase">2. Terminy wyjazdów i cennik</h5>
+                <button class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold" @onclick="DodajPustyTermin">
+                    <i class="bi bi-plus-circle"></i> Dodaj turnus
+                </button>
+            </div>
+
+            @if (!ofertaDto.TerminyCeny.Any())
+            {
+                <div class="alert alert-light border small text-center text-muted py-4 mb-4">
+                    Brak dodanych turnusów. Kliknij przycisk powyżej, aby stworzyć termin.
+                </div>
+            }
+            else
+            {
+                <div class="mb-4">
+                    @foreach (var (termin, index) in ofertaDto.TerminyCeny.Select((t, i) => (t, i)))
+                    {
+                        <div class="row g-2 align-items-end bg-light p-2 rounded border mb-2 mx-0">
+                            <div class="col-md-4">
+                                <label class="small fw-bold text-muted d-block mb-1">DATA OD:</label>
+                                <input type="date" class="form-control form-control-sm" @bind="termin.DataOd" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small fw-bold text-muted d-block mb-1">DATA DO:</label>
+                                <input type="date" class="form-control form-control-sm" @bind="termin.DataDo" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-muted d-block mb-1">CENA / OS (PLN):</label>
+                                <input type="number" class="form-control form-control-sm text-end" @bind="termin.CenaPodstawowa" />
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <button class="btn btn-sm btn-link text-danger" @onclick="() => UsunTermin(index)"><i class="bi bi-trash-fill fs-5"></i></button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <button class="btn btn-success w-100 py-2.5 fw-bold rounded-pill shadow-sm" @onclick="OpublikujOferte" disabled="@ladowanie">
+                @if (ladowanie)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                <i class="bi bi-send-check-fill"></i> Opublikuj ofertę wakacyjną
+            </button>
+        }
+        else
+        {
+            <h3 class="fw-bold text-primary mb-3"><i class="bi bi-shield-lock-fill"></i> Panel Zarządzania Ofertami</h3>
+            <p class="text-muted small">Ukrywaj nieaktualne oferty (zostaną zachowane w raportach) lub usuwaj je trwale z bazy danych.</p>
+            <hr />
+
+            @if (wszystkieOferty == null)
+            {
+                <div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="small text-muted mt-2">Pobieranie bazy ofert...</p></div>
+            }
+            else if (!wszystkieOferty.Any())
+            {
+                <div class="alert alert-info small text-center mb-0">Brak jakichkolwiek ofert turystycznych w bazie danych.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small border">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Hotel i Kierunek</th>
+                                <th>Wyżywienie</th>
+                                <th class="text-center">Liczba Turnusów</th>
+                                <th class="text-center">Widoczność (Klient)</th>
+                                <th class="text-center">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var o in wszystkieOferty)
+                            {
+                                <tr class="@(o.CzyAktywna ? "" : "table-light text-muted")" style="@(o.CzyAktywna ? "" : "opacity: 0.65;")">
+                                    <td class="fw-bold">#@o.Id</td>
+                                    <td>
+                                        <div class="fw-bold">@o.Hotel?.NazwaHotelu</div>
+                                        <div class="text-muted" style="font-size: 11px;"><i class="bi bi-geo-alt-fill text-danger"></i> @o.Hotel?.Miejscowosc?.Nazwa</div>
+                                    </td>
+                                    <td><span class="badge bg-secondary">@o.TypWyzywienia?.NazwaWyzywienia</span></td>
+                                    <td class="text-center fw-bold text-dark">@(o.TerminyCeny?.Count ?? 0)</td>
+                                    <td class="text-center">
+                                        @if (o.CzyAktywna)
+                                        {
+                                            <button class="btn btn-sm btn-success rounded-pill px-3 fw-bold" @onclick="() => PrzelaczWidocznosc(o)">
+                                                <i class="bi bi-eye-fill"></i> Aktywna
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-secondary rounded-pill px-3 fw-bold" @onclick="() => PrzelaczWidocznosc(o)">
+                                                <i class="bi bi-eye-slash-fill"></i> Ukryta
+                                            </button>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-danger rounded-circle p-2" title="Trwałe usunięcie" @onclick="() => UsunOferteZTrwale(o.Id)">
+                                            <i class="bi bi-trash-fill d-block px-1"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private string aktywnaTab = "create";
+    private bool ladowanie = false;
+
+    private CreateOfertaDto ofertaDto = new();
+    private List<ReadHotelDto>? hotele;
+    private List<ReadHotelDto> hunde => hotele ?? new();
+    private List<TypWyzywienia>? typyWyzywienia;
+    private string komunikatSukcesu = "";
+    private string komunikatBledu = "";
+
+    private List<ReadOfertaDto>? wszystkieOferty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var resHotele = await Http.GetFromJsonAsync<ApiResponse<List<ReadHotelDto>>>("api/hotele");
+        if (resHotele != null && resHotele.Sukces) hotele = resHotele.Dane;
+
+        var resWyzywienie = await Http.GetFromJsonAsync<ApiResponse<List<TypWyzywienia>>>("api/lookups/typy-wyzywienia");
+        if (resWyzywienie != null && resWyzywienie.Sukces) typyWyzywienia = resWyzywienie.Dane;
+    }
+
+    private async Task PrzelaczZakladke(string tab)
+    {
+        aktywnaTab = tab;
+        if (tab == "manage")
+        {
+            await PobierzWszystkieOfertyAdmina();
+        }
+    }
+
+    private async Task PobierzWszystkieOfertyAdmina()
+    {
+        wszystkieOferty = null;
+        var res = await Http.GetFromJsonAsync<ApiResponse<List<ReadOfertaDto>>>("api/oferty?tylkoAktywne=false");
+        if (res != null && res.Sukces) wszystkieOferty = res.Dane;
+    }
+
+    private void DodajPustyTermin()
+    {
+        ofertaDto.TerminyCeny.Add(new CreateTerminCenaDto
+        {
+            DataOd = DateTime.Today.AddDays(14),
+            DataDo = DateTime.Today.AddDays(21),
+            CenaPodstawowa = 1999
+        });
+    }
+
+    private void UsunTermin(int index)
+    {
+        if (index >= 0 && index < ofertaDto.TerminyCeny.Count)
+        {
+            ofertaDto.TerminyCeny.RemoveAt(index);
+        }
+    }
+
+    private async Task OpublikujOferte()
+    {
+        komunikatSukcesu = ""; komunikatBledu = "";
+        if (ofertaDto.HotelId <= 0 || ofertaDto.TypWyzywieniaId <= 0) { komunikatBledu = "Wybierz hotel i rodzaj wyżywienia."; return; }
+        if (!ofertaDto.TerminyCeny.Any()) { komunikatBledu = "Dodaj przynajmniej jeden turnus."; return; }
+
+        ladowanie = true;
+        var res = await Http.PostAsJsonAsync("api/oferty", ofertaDto);
+        if (res.IsSuccessStatusCode)
+        {
+            komunikatSukcesu = "Oferta wakacyjna została pomyślnie opublikowana w systemie.";
+            ofertaDto = new CreateOfertaDto();
+        }
+        else { komunikatBledu = "Błąd zapisu oferty na serwerze."; }
+        ladowanie = false;
+    }
+
+    private async Task PrzelaczWidocznosc(ReadOfertaDto o)
+    {
+        try
+        {
+            var res = await Http.PutAsync($"api/oferty/{o.Id}/toggle-status", null);
+            
+            if (res.IsSuccessStatusCode)
+            {
+                o.CzyAktywna = !o.CzyAktywna; 
+                StateHasChanged();           
+            }
+            else
+            {
+                var odpowiedzBledu = await res.Content.ReadAsStringAsync();
+                await JSRuntime.InvokeVoidAsync("alert", $"Serwer odrzucił żądanie!\nKod statusu: {res.StatusCode}\nSzczegóły: {odpowiedzBledu}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Błąd połączenia sieciowego: {ex.Message}");
+        }
+    }
+
+    private async Task UsunOferteZTrwale(int id)
+    {
+        bool potwierdzenie = await JSRuntime.InvokeAsync<bool>("confirm", $"CZY NA PEWNO CHCESZ TRWALE USUNĄĆ OFERTĘ #{id} Z BAZY DANYCH?\nUwaga: Spowoduje to bezpowrotne skasowanie rekordu!");
+        if (potwierdzenie)
+        {
+            var res = await Http.DeleteAsync($"api/oferty/{id}");
+            if (res.IsSuccessStatusCode)
+            {
+                await PobierzWszystkieOfertyAdmina(); 
+            }
+        }
+    }
+}
