@@ -22,6 +22,7 @@ namespace BookingApp.Api.Data
         public DbSet<Rezerwacja> Rezerwacje { get; set; }
         public DbSet<StatusRezerwacji> StatusyRezerwacji { get; set; }
         public DbSet<Doplata> Doplaty { get; set; }
+        public DbSet<UlubionaOferta> UlubioneOferty { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
