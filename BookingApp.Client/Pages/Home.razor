@@ -1,8 +1,10 @@
 ﻿@page "/"
 @using BookingApp.Shared.ApiResponse
 @using BookingApp.Shared.DTOs.OfertaDto
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavManager
 @inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
 
 @* Sekcja Header *@
 <div class="hero-section">
@@ -66,14 +68,22 @@
             @foreach (var offer in Offers)
             {
                 var minimalnaCena = offer.TerminyCeny != null && offer.TerminyCeny.Any()
-                                    ? offer.TerminyCeny.Min(t => t.CenaPodstawowa)
-                                    : 0;
+                                               ? offer.TerminyCeny.Min(t => t.CenaPodstawowa)
+                                               : 0;
                 var zdjecieUrl = offer.Hotel?.ZdjeciaHotelu?.FirstOrDefault()?.UrlZdjecia ?? "images/logo.jpg";
                 var nazwaHotelu = offer.Hotel?.NazwaHotelu ?? "Nieznany hotel";
                 var lokalizacja = offer.Hotel?.Miejscowosc?.Nazwa ?? "Brak danych";
                 var gwiazdki = offer.Hotel?.LiczbaGwiazdek ?? 0;
 
                 <div class="offer-card shadow-sm" @onclick='() => NavManager.NavigateTo($"offer-details/{offer.Id}?osoby={_liczbaOsob}")' style="cursor:pointer;">
+                    
+                    @* PRZYCISK SERDUSZKA *@
+                    <button class="btn btn-light rounded-circle shadow-sm position-absolute border-0 d-flex align-items-center justify-content-center"
+                            style="top: 12px; right: 12px; z-index: 10; width: 36px; height: 36px;"
+                            @onclick="() => ToggleUlubione(offer.Id)" @onclick:stopPropagation="true">
+                        <i class="bi @(ulubioneIds.Contains(offer.Id) ? "bi-heart-fill text-danger" : "bi-heart text-muted") fs-5"></i>
+                    </button>
+
                     <div class="offer-photo" style="background-image: url('@zdjecieUrl')"></div>
                     <div class="offer-content">
                         <h5 class="fw-bold mb-1">@nazwaHotelu</h5>
@@ -92,9 +102,9 @@
     </div>
 </div>
 
-
 @code {
     private List<ReadOfertaDto>? Offers;
+    private List<int> ulubioneIds = new();
 
     private string _skad = "";
     private string _dokad = "";
@@ -109,6 +119,47 @@
         {
             Offers = response.Dane;
         }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            try
+            {
+                var favResponse = await Http.GetFromJsonAsync<ApiResponse<List<int>>>("api/ulubione/ids");
+                if (favResponse != null && favResponse.Sukces && favResponse.Dane != null)
+                {
+                    ulubioneIds = favResponse.Dane;
+                }
+            }
+            catch { /* Ignorowanie dla kont admina */ }
+        }
+    }
+
+    private async Task ToggleUlubione(int offerId)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavManager.NavigateTo("/login"); 
+            return;
+        }
+
+        if (ulubioneIds.Contains(offerId))
+        {
+            var res = await Http.DeleteAsync($"api/ulubione/{offerId}");
+            if (res.IsSuccessStatusCode)
+            {
+                ulubioneIds.Remove(offerId);
+            }
+        }
+        else
+        {
+            var res = await Http.PostAsync($"api/ulubione/{offerId}", null);
+            if (res.IsSuccessStatusCode)
+            {
+                ulubioneIds.Add(offerId);
+            }
+        }
     }
 
     private void PrzejdzDoWyszukiwania()
@@ -121,7 +172,6 @@
                   
         NavManager.NavigateTo(url);
     }
-
 }
 
 <style>
@@ -197,6 +247,7 @@
         min-height: 350px;
         border: 1px solid #ddd;
         overflow: hidden;
+        position: relative;
     }
 
     .placeholder-photo, .offer-photo {

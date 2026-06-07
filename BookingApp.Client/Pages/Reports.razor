@@ -11,24 +11,24 @@
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item">
             <button class="nav-link fw-bold @(aktywnaZakladka == "sales" ? "active text-primary" : "text-muted")" @onclick='() => PrzelaczZakladke("sales")'>
-                <i class="bi bi-cart-check-fill"></i> Zestawienie sprzedaży
+                <i class=""></i> Zestawienie sprzedaży
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link fw-bold @(aktywnaZakladka == "popularity" ? "active text-warning" : "text-muted")" @onclick='() => PrzelaczZakladke("popularity")'>
-                <i class="bi bi-star-fill"></i> Popularność hoteli
+                <i class=""></i> Popularność hoteli
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link fw-bold @(aktywnaZakladka == "financial" ? "active text-success" : "text-muted")" @onclick='() => PrzelaczZakladke("financial")'>
-                <i class="bi bi-cash-coin"></i> Analiza finansów i zysków
+                <i class=""></i> Analiza finansów i zysków
             </button>
         </li>
     </ul>
 
     <div class="card shadow-sm border-0 p-4 bg-white rounded">
         <h3 class="fw-bold mb-3 @UstalKolorTekstuNaglowka()">
-            <i class="bi bi-file-earmark-bar-graph"></i>
+            <i class=""></i>
             @if (aktywnaZakladka == "sales")
             {
                 <span>Raport Rezerwacji i Sprzedaży</span>
