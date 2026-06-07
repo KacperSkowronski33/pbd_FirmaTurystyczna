@@ -83,43 +83,49 @@
             }
         </div>
 
-        <h5 class="fw-bold text-dark mb-2">2. Dobór pól do raportu (Kolumny)</h5>
+        <h5 class="fw-bold text-dark mb-3 mt-4">2. Dobór pól do raportu (Kolumny)</h5>
         
         @if (aktywnaZakladka == "sales")
         {
-            <div class="row bg-light p-3 rounded border g-3 mb-4 mx-1">
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colId" @bind="salesRequest.PokazId"><label class="form-check-label small" for="colId">ID Rezerwacji</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colData" @bind="salesRequest.PokazDataUtworzenia"><label class="form-check-label small" for="colData">Data Rezerwacji</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colKlient" @bind="salesRequest.PokazKlienta"><label class="form-check-label small" for="colKlient">Imię i Nazwisko</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colEmail" @bind="salesRequest.PokazEmail"><label class="form-check-label small" for="colEmail">Adres Email</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colHotel" @bind="salesRequest.PokazHotel"><label class="form-check-label small" for="colHotel">Nazwa Hotelu</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colMiejscowosc" @bind="salesRequest.PokazMiejscowosc"><label class="form-check-label small" for="colMiejscowosc">Miejscowość</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colOsoby" @bind="salesRequest.PokazLiczbaOsob"><label class="form-check-label small" for="colOsoby">Uczestnicy</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colKwota" @bind="salesRequest.PokazKwote"><label class="form-check-label small" for="colKwota">Kwota Całkowita</label></div></div>
+            <div class="bg-light p-3 rounded border mb-4">
+                <div class="row g-3">
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colId" @bind="salesRequest.PokazId"><label class="form-check-label small" for="colId">ID Rezerwacji</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colData" @bind="salesRequest.PokazDataUtworzenia"><label class="form-check-label small" for="colData">Data Rezerwacji</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colKlient" @bind="salesRequest.PokazKlienta"><label class="form-check-label small" for="colKlient">Imię i Nazwisko</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colEmail" @bind="salesRequest.PokazEmail"><label class="form-check-label small" for="colEmail">Adres Email</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colHotel" @bind="salesRequest.PokazHotel"><label class="form-check-label small" for="colHotel">Nazwa Hotelu</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colMiejscowosc" @bind="salesRequest.PokazMiejscowosc"><label class="form-check-label small" for="colMiejscowosc">Miejscowość</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colOsoby" @bind="salesRequest.PokazLiczbaOsob"><label class="form-check-label small" for="colOsoby">Uczestnicy</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="colKwota" @bind="salesRequest.PokazKwote"><label class="form-check-label small" for="colKwota">Kwota Całkowita</label></div></div>
+                </div>
             </div>
         }
         else if (aktywnaZakladka == "popularity")
         {
-            <div class="row bg-light p-3 rounded border g-3 mb-4 mx-1">
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pNazwa" @bind="popularityRequest.PokazNazwe"><label class="form-check-label small" for="pNazwa">Nazwa Hotelu</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pGwi" @bind="popularityRequest.PokazGwiazdki"><label class="form-check-label small" for="pGwi">Standard (Gwiazdki)</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pLok" @bind="popularityRequest.PokazLokalizacje"><label class="form-check-label small" for="pLok">Miejscowość</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pRez" @bind="popularityRequest.PokazLiczbeRezerwacji"><label class="form-check-label small" for="pRez">Suma Rezerwacji</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pUcz" @bind="popularityRequest.PokazSumeUczestnikow"><label class="form-check-label small" for="pUcz">Gacie gości</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pPrz" @bind="popularityRequest.PokazPrzychod"><label class="form-check-label small" for="pPrz">Generowany Przychód</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pSre" @bind="popularityRequest.PokazSredniaWartosc"><label class="form-check-label small" for="pSre">Śr. Wartość Koszyka</label></div></div>
+            <div class="bg-light p-3 rounded border mb-4">
+                <div class="row g-3">
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pNazwa" @bind="popularityRequest.PokazNazwe"><label class="form-check-label small" for="pNazwa">Nazwa Hotelu</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pGwi" @bind="popularityRequest.PokazGwiazdki"><label class="form-check-label small" for="pGwi">Standard (Gwiazdki)</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pLok" @bind="popularityRequest.PokazLokalizacje"><label class="form-check-label small" for="pLok">Miejscowość</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pRez" @bind="popularityRequest.PokazLiczbeRezerwacji"><label class="form-check-label small" for="pRez">Suma Rezerwacji</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pUcz" @bind="popularityRequest.PokazSumeUczestnikow"><label class="form-check-label small" for="pUcz">Łączna liczba gości</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pPrzi" @bind="popularityRequest.PokazPrzychod"><label class="form-check-label small" for="pPrzi">Generowany Przychód</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="pSre" @bind="popularityRequest.PokazSredniaWartosc"><label class="form-check-label small" for="pSre">Śr. Wartość Koszyka</label></div></div>
+                </div>
             </div>
         }
         else
         {
-            <div class="row bg-light p-3 rounded border g-3 mb-4 mx-1">
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fOkr" @bind="financialRequest.PokazOkres"><label class="form-check-label small" for="fOkr">Okres Rozliczeniowy</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fTra" @bind="financialRequest.PokazLiczbeTransakcji"><label class="form-check-label small" for="fTra">Liczba transakcji</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fUcz" @bind="financialRequest.PokazSumeUczestnikow"><label class="form-check-label small" for="fUcz">Liczba gości</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fDop" @bind="financialRequest.PokazSumeDoplat"><label class="form-check-label small" for="fDop">Suma dopłat (Dodatki)</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fPgl" @bind="financialRequest.PokazPrzychodGlowny"><label class="form-check-label small" for="fPgl">Przychód główny</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fPca" @bind="financialRequest.PokazPrzychodCalkowity"><label class="form-check-label small" for="fPca">Przychód całkowity</label></div></div>
-                <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fSre" @bind="financialRequest.PokazSredniaWartosc"><label class="form-check-label small" for="fSre">Średnia transakcja</label></div></div>
+            <div class="bg-light p-3 rounded border mb-4">
+                <div class="row g-3">
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fOkr" @bind="financialRequest.PokazOkres"><label class="form-check-label small" for="fOkr">Okres Rozliczeniowy</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fTra" @bind="financialRequest.PokazLiczbeTransakcji"><label class="form-check-label small" for="fTra">Liczba transakcji</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fUcz" @bind="financialRequest.PokazSumeUczestnikow"><label class="form-check-label small" for="fUcz">Liczba gości</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fDop" @bind="financialRequest.PokazSumeDoplat"><label class="form-check-label small" for="fDop">Suma dopłat (Dodatki)</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fPgl" @bind="financialRequest.PokazPrzychodGlowny"><label class="form-check-label small" for="fPgl">Przychód główny</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fPca" @bind="financialRequest.PokazPrzychodCalkowity"><label class="form-check-label small" for="fPca">Przychód całkowity</label></div></div>
+                    <div class="col-6 col-md-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="fSre" @bind="financialRequest.PokazSredniaWartosc"><label class="form-check-label small" for="fSre">Średnia transakcja</label></div></div>
+                </div>
             </div>
         }
 

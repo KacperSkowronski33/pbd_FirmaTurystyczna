@@ -1,7 +1,10 @@
 ﻿@inherits LayoutComponentBase
 @using System.Text.Json
+@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="page">
     @if (pokazujJakoAdmin)
@@ -30,12 +33,22 @@
 @code {
     private bool pokazujJakoAdmin = false;
 
+    protected override void OnInitialized()
+    {
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await SprawdzUprawnieniaAdmina();
         }
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        await SprawdzUprawnieniaAdmina();
     }
 
     private async Task SprawdzUprawnieniaAdmina()
@@ -62,11 +75,9 @@
             pokazujJakoAdmin = false;
         }
         
-        StateHasChanged();
+        StateHasChanged(); 
     }
 
-    /// <summary>
-    /// </summary>
     private string ExtractRoleFromJwt(string jwt)
     {
         try
@@ -100,5 +111,10 @@
         }
         catch { }
         return "";
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 }
