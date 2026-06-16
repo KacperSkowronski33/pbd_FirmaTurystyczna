@@ -22,5 +22,8 @@ namespace BookingApp.Shared.Models
 
         public ICollection<StatusRezerwacji> Statusy { get; set; } = new List<StatusRezerwacji>();
         public ICollection<Doplata> Doplaty { get; set; } = new List<Doplata>();
+
+        public string StatusPlatnosci { get; set; } = "Oczekuje"; // Oczekuje, Completed, Canceled
+        public string? PayUOrderId { get; set; } 
     }
 }

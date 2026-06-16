@@ -60,7 +60,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<BookingApp.Api.Middleware.ExceptionMiddleware>();
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseCors("AllowBlazorClient");
 
