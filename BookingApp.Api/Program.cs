@@ -22,7 +22,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<BookingApp.Api.Validators.C
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorClient",
-        policy => policy.WithOrigins("https://localhost:7048") 
+        policy => 
+        //policy.WithOrigins("https://localhost:7048") 
+        policy.AllowAnyOrigin()
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
@@ -60,7 +62,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<BookingApp.Api.Middleware.ExceptionMiddleware>();
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseCors("AllowBlazorClient");
 

@@ -85,7 +85,8 @@ namespace BookingApp.Api.Controllers
                     Id = r.Id,
                     LiczbaOsob = r.LiczbaOsob,
                     KwotaCalkowita = r.KwotaCalkowita,
-                    DataUtworzenia = r.DataUtworzenia
+                    DataUtworzenia = r.DataUtworzenia,
+                    StatusPlatnosci = r.StatusPlatnosci
                 })
                 .ToListAsync();
 
@@ -126,7 +127,8 @@ namespace BookingApp.Api.Controllers
                     Id = r.Id,
                     LiczbaOsob = r.LiczbaOsob,
                     KwotaCalkowita = r.KwotaCalkowita,
-                    DataUtworzenia = r.DataUtworzenia
+                    DataUtworzenia = r.DataUtworzenia,
+                    StatusPlatnosci = r.StatusPlatnosci
                 })
                 .ToListAsync();
 
